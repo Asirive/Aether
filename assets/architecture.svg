@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 760" width="1000" height="760" role="img" aria-label="AETHER block stack: embedding, 24 alternating PolyMamba-2 and CC-FSA blocks with MoD gates, final norm, tied LM head">
+  <rect width="1000" height="760" fill="#050505"/>
+  <text x="40" y="48" font-family="Anton,Impact,'Arial Narrow',sans-serif" font-size="34" fill="#F5F5F5" letter-spacing="2">ARCHITECTURE<tspan fill="#EAFF00">_</tspan></text>
+  <text x="40" y="74" font-family="'Courier New',monospace" font-size="13" fill="#EAFF00" letter-spacing="2">FIG.01 // 24 BLOCKS, d_model=576, vocab=128,256, 186.6M PARAMS</text>
+
+  <g font-family="'Courier New',monospace" font-size="15" text-anchor="middle">
+    <rect x="300" y="110" width="400" height="48" fill="none" stroke="#F5F5F5" stroke-width="2"/>
+    <text x="500" y="140" fill="#F5F5F5">TOKEN EMBEDDING (tied with LM head)</text>
+    <path d="M500 158V190" stroke="#F5F5F5" stroke-width="2"/>
+
+    <rect x="180" y="190" width="640" height="360" fill="none" stroke="#EAFF00" stroke-width="2" stroke-dasharray="6 6"/>
+    <text x="500" y="214" fill="#EAFF00" letter-spacing="2">x 24, repeating pairs</text>
+
+    <rect x="230" y="232" width="250" height="150" fill="#0d0d0d" stroke="#F5F5F5" stroke-width="2"/>
+    <text x="355" y="258" fill="#F5F5F5" font-weight="bold">EVEN BLOCK</text>
+    <rect x="250" y="272" width="210" height="44" fill="#EAFF00"/>
+    <text x="355" y="300" fill="#050505" font-weight="bold">PolyMamba-2 (K=2 SSM)</text>
+    <rect x="250" y="326" width="210" height="40" fill="none" stroke="#F5F5F5"/>
+    <text x="355" y="352" fill="#F5F5F5">SwiGLU FFN</text>
+
+    <rect x="520" y="232" width="250" height="150" fill="#0d0d0d" stroke="#F5F5F5" stroke-width="2"/>
+    <text x="645" y="258" fill="#F5F5F5" font-weight="bold">ODD BLOCK</text>
+    <rect x="540" y="272" width="210" height="44" fill="#EAFF00"/>
+    <text x="645" y="300" fill="#050505" font-weight="bold">CC-FSA (chunk DCT attn)</text>
+    <rect x="540" y="326" width="210" height="40" fill="none" stroke="#F5F5F5"/>
+    <text x="645" y="352" fill="#F5F5F5">SwiGLU FFN</text>
+
+    <path d="M480 307H520" stroke="#F5F5F5" stroke-width="2" marker-end="url(#a)"/>
+    <text x="500" y="408" fill="#F5F5F5" font-size="13">pre-RMSNorm, residual add around mixer and FFN</text>
+
+    <rect x="230" y="430" width="540" height="96" fill="none" stroke="#EAFF00" stroke-width="2"/>
+    <text x="500" y="458" fill="#EAFF00" font-weight="bold" letter-spacing="2">MoD-GDR GATES at blocks 4 / 8 / 12 / 16 / 20</text>
+    <text x="500" y="484" fill="#F5F5F5" font-size="13">keep ratios 0.50 / 0.70 / 0.85 / 1.00 / 1.00</text>
+    <text x="500" y="508" fill="#F5F5F5" font-size="13">x = gate * block(x) + (1 - gate) * x   (no compute saved in v1)</text>
+
+    <path d="M500 550V582" stroke="#F5F5F5" stroke-width="2"/>
+    <rect x="300" y="582" width="400" height="44" fill="none" stroke="#F5F5F5" stroke-width="2"/>
+    <text x="500" y="610" fill="#F5F5F5">FINAL RMSNORM</text>
+    <path d="M500 626V652" stroke="#F5F5F5" stroke-width="2"/>
+    <rect x="300" y="652" width="400" height="48" fill="none" stroke="#F5F5F5" stroke-width="2"/>
+    <text x="500" y="682" fill="#F5F5F5">LM HEAD (chunked CE loss)</text>
+  </g>
+  <text x="40" y="740" font-family="'Courier New',monospace" font-size="12" fill="#F5F5F5" fill-opacity="0.7">No positional encoding is applied. rope_base is configured but never read.</text>
+  <defs><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#F5F5F5"/></marker></defs>
+</svg>

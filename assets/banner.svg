@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 320" width="1200" height="320" role="img" aria-label="AETHER, an experimental 187M-parameter language model, by Asirive">
+  <rect width="1200" height="320" fill="#050505"/>
+  <g stroke="#EAFF00" stroke-opacity="0.07" stroke-width="1">
+    <path d="M0 40H1200M0 80H1200M0 120H1200M0 160H1200M0 200H1200M0 240H1200M0 280H1200"/>
+    <path d="M100 0V320M200 0V320M300 0V320M400 0V320M500 0V320M600 0V320M700 0V320M800 0V320M900 0V320M1000 0V320M1100 0V320"/>
+  </g>
+  <rect x="0" y="0" width="1200" height="6" fill="#EAFF00"/>
+  <text x="60" y="58" font-family="'Courier New',monospace" font-size="15" letter-spacing="3" fill="#EAFF00">ASIRIVE_ // /02 AETHER // RESEARCH</text>
+  <text x="56" y="204" font-family="Anton,Impact,'Arial Narrow',sans-serif" font-size="156" fill="#F5F5F5" letter-spacing="2">AETHER<tspan fill="#EAFF00">_</tspan></text>
+  <text x="62" y="252" font-family="'Courier New',monospace" font-size="19" letter-spacing="2" fill="#F5F5F5">187M PARAMS // CC-FSA + POLYMAMBA-2 + MOD // ONE RX 7600</text>
+  <text x="62" y="284" font-family="'Courier New',monospace" font-size="15" letter-spacing="2" fill="#EAFF00">STATUS: EXPERIMENTAL. NOT YET TRAINED PAST STEP ~1,700. READ THE HONEST SECTION.</text>
+  <g transform="translate(930 70)" fill="none" stroke="#EAFF00" stroke-width="2">
+    <rect x="0" y="0" width="210" height="180" stroke-opacity="0.35"/>
+    <path d="M0 150 C 30 150, 40 40, 70 60 S 110 140, 140 70 S 180 30, 210 20" stroke-width="3"/>
+    <circle cx="70" cy="60" r="5" fill="#EAFF00"/><circle cx="140" cy="70" r="5" fill="#EAFF00"/>
+    <text x="0" y="205" font-family="'Courier New',monospace" font-size="13" fill="#F5F5F5" stroke="none" letter-spacing="2">FIG.00 // GRAD NORM, DEPICTED</text>
+  </g>
+</svg>

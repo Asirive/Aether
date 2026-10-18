@@ -1,0 +1,83 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aether-200m"
+version = "0.1.0"
+description = "200M-parameter language model with FSA + PolyMamba-2 + MoD-GDR"
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">=3.11"
+authors = [
+    {name = "Haziq", email = "IRSPlays@users.noreply.github.com"},
+]
+keywords = ["language-model", "ssm", "attention", "efficient-llm"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: POSIX :: Linux",
+]
+
+dependencies = [
+    "torch>=2.4.0",
+    "transformers>=4.45.0",
+    "datasets>=3.0.0",
+    "accelerate>=1.0.0",
+    "trl>=0.11.0",
+    "wandb>=0.18.0",
+    "pyyaml>=6.0",
+    "pydantic>=2.8.0",
+    "numpy>=1.26.0",
+    "einops>=0.8.0",
+    "sentencepiece>=0.2.0",
+    "tokenizers>=0.20.0",
+    "safetensors>=0.4.0",
+    "rich>=13.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "ruff>=0.6.0",
+    "mypy>=1.11.0",
+    "black>=24.0",
+]
+eval = [
+    "lm-eval>=0.4.0",
+]
+rocm = [
+    "torch==2.4.0+rocm6.4",
+]
+
+[project.urls]
+Homepage = "https://github.com/IRSPlays/aether-200m"
+
+[tool.setuptools.packages.find]
+include = ["aether*"]
+exclude = ["tests*", "docs*", "scripts*", "ablations*", "configs*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --tb=short"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::FutureWarning",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unused_ignores = true
+warn_redundant_casts = true

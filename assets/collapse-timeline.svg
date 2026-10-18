@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 420" width="1000" height="420" role="img" aria-label="Approximate last training step reached by each run family">
+  <rect width="1000" height="420" fill="#050505"/>
+  <text x="40" y="48" font-family="Anton,Impact,'Arial Narrow',sans-serif" font-size="34" fill="#F5F5F5" letter-spacing="2">HOW FAR RUNS GOT<tspan fill="#EAFF00">_</tspan></text>
+  <text x="40" y="74" font-family="'Courier New',monospace" font-size="13" fill="#EAFF00" letter-spacing="2">FIG.02 // APPROX LAST STEP, FROM PROJECT NOTES. TARGET IS 100,000.</text>
+  <g font-family="'Courier New',monospace" font-size="14" fill="#F5F5F5">
+    <text x="40" y="128">After label fix (9 Aug)</text>
+    <rect x="330" y="108" width="190" height="28" fill="#EAFF00"/><text x="530" y="128">~550 collapsed</text>
+
+    <text x="40" y="188">After dt/radius fixes (Aug)</text>
+    <rect x="330" y="168" width="440" height="28" fill="#EAFF00"/><text x="780" y="188">~1,300 collapsed</text>
+
+    <text x="40" y="248">Pre-guard-fix run (13 Sep)</text>
+    <rect x="330" y="228" width="590" height="28" fill="#EAFF00"/><text x="640" y="214" fill="#F5F5F5">~1,700 destroyed (19.5k grad norm applied)</text>
+
+    <text x="40" y="308">Router fix run3 (15 Sep)</text>
+    <rect x="330" y="288" width="138" height="28" fill="none" stroke="#EAFF00" stroke-width="2" stroke-dasharray="5 4"/><text x="478" y="308">400 stopped, unvalidated</text>
+
+    <text x="40" y="368">Router fix run4 (15 Sep)</text>
+    <rect x="330" y="348" width="107" height="28" fill="none" stroke="#EAFF00" stroke-width="2" stroke-dasharray="5 4"/><text x="447" y="368">310 stopped, unvalidated</text>
+  </g>
+  <text x="330" y="402" font-family="'Courier New',monospace" font-size="11" fill="#F5F5F5" fill-opacity="0.7">bar length is scaled to 0 - 1,800 steps. Dashed = never reached the failure zone.</text>
+</svg>

@@ -1,0 +1,41 @@
+base_model:
+  vocab_size: 32000
+  d_model: 384
+  d_inner: 1024
+  n_layers: 6
+  n_heads: 6
+  d_k: 64
+  max_seq_len: 1024
+  tie_embeddings: true
+
+ablations:
+  - name: baseline
+    use_fsa: false
+    use_polymamba: false
+    use_mod: false
+  - name: fsa_only
+    use_fsa: true
+    use_polymamba: false
+    use_mod: false
+  - name: polymamba_only
+    use_fsa: false
+    use_polymamba: true
+    use_mod: false
+  - name: mod_only
+    use_fsa: false
+    use_polymamba: false
+    use_mod: true
+  - name: aether_full
+    use_fsa: true
+    use_polymamba: true
+    use_mod: true
+
+training:
+  total_tokens: 100000000
+  effective_batch_tokens: 8192
+  micro_batch: 4
+  seq_len_default: 1024
+
+optim:
+  lr: 0.001
+  warmup_steps: 100

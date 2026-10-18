@@ -1,0 +1,53 @@
+{
+  "arm": "linear",
+  "seed": 0,
+  "task": "induction",
+  "params": 50596,
+  "mixer_rms": {
+    "even": null,
+    "odd": 0.0001
+  },
+  "scale_map": null,
+  "final_train_loss": 2.076242208480835,
+  "final_eval_loss": 2.0738534927368164,
+  "final_eval_first_half": 2.0746512413024902,
+  "final_eval_copy": 2.0736043453216553,
+  "curve": [
+    {
+      "eval_loss": 2.083991050720215,
+      "eval_first_half": 2.0842244625091553,
+      "eval_copy": 2.0839180946350098,
+      "step": 0,
+      "train_loss": 2.0962302684783936
+    },
+    {
+      "eval_loss": 2.0832393169403076,
+      "eval_first_half": 2.0826199054718018,
+      "eval_copy": 2.083432912826538,
+      "step": 250,
+      "train_loss": 2.0889804363250732
+    },
+    {
+      "eval_loss": 2.065854549407959,
+      "eval_first_half": 2.067868709564209,
+      "eval_copy": 2.0652248859405518,
+      "step": 500,
+      "train_loss": 2.0412795543670654
+    },
+    {
+      "eval_loss": 2.0585317611694336,
+      "eval_first_half": 2.056569814682007,
+      "eval_copy": 2.0591447353363037,
+      "step": 750,
+      "train_loss": 2.0786478519439697
+    },
+    {
+      "eval_loss": 2.0738534927368164,
+      "eval_first_half": 2.0746512413024902,
+      "eval_copy": 2.0736043453216553,
+      "step": 999,
+      "train_loss": 2.076072931289673
+    }
+  ],
+  "seconds": 46.7
+}
