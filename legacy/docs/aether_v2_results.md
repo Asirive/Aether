@@ -143,6 +143,9 @@ bpb on all positions of 96 held-out windows (~24k predictions per number):
   closing. v2 still copies better (copy gain +0.38) and also leads on the strict metric
   (1.379 vs 1.452).
 * Single seed. Together with the three 3200-step seeds, v2 led in every run (4 of 4).
+* Partial runs cut by a container restart (not final; rerunning): 6400-step seed 1 at step
+  2600, transformer 1.460 vs v2 1.428; a larger model (d_model 512, ~27M params, 3200-step
+  schedule) at step 1600, transformer 1.867 vs v2 1.504.
 
 ## 7. Deployment check at the real size (0.54B, static-shape ONNX)
 
