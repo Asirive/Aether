@@ -42,6 +42,15 @@ def make_batch(bsz: int, pairs: int, g: torch.Generator) -> tuple[torch.Tensor, 
     return ids, mask
 
 
+def make_copy_batch(bsz: int, span: int, g: torch.Generator) -> tuple[torch.Tensor, torch.Tensor]:
+    """Random tokens, then the same tokens again. Scored on the repeat (needs retrieval)."""
+    base = torch.randint(0, 256, (bsz, span), generator=g)
+    ids = torch.cat([base, base], dim=1)
+    mask = torch.zeros_like(ids, dtype=torch.bool)
+    mask[:, span - 1 : -1] = True
+    return ids, mask
+
+
 def loss_acc(model, ids, mask):
     logits = model(ids)[:, :-1].float()
     tgt = ids[:, 1:]
@@ -50,7 +59,8 @@ def loss_acc(model, ids, mask):
     return F.cross_entropy(lg, tg), (lg.argmax(-1) == tg).float().mean()
 
 
-def run(spec: str, steps: int, pairs: int, seed: int, lr: float, dims: Dims, bsz: int) -> dict:
+def run(spec: str, steps: int, pairs: int, seed: int, lr: float, dims: Dims, bsz: int, task: str = "mqar") -> dict:
+    batch = make_batch if task == "mqar" else make_copy_batch
     torch.manual_seed(seed)
     model = LabLM(Spec.parse(spec), dims)
     opt = torch.optim.AdamW(model.parameters(), lr=lr, betas=(0.9, 0.95), weight_decay=0.1)
@@ -62,7 +72,7 @@ def run(spec: str, steps: int, pairs: int, seed: int, lr: float, dims: Dims, bsz
     curve = []
     for step in range(steps):
         aux_w = model.set_knobs(step, steps)
-        ids, mask = make_batch(bsz, pairs, g)
+        ids, mask = batch(bsz, pairs, g)
         with AMP():
             loss, acc = loss_acc(model, ids, mask)
             aux = model.aux_loss(aux_w)
@@ -79,11 +89,11 @@ def run(spec: str, steps: int, pairs: int, seed: int, lr: float, dims: Dims, bsz
     accs = []
     with torch.no_grad():
         for _ in range(8):
-            ids, mask = make_batch(64, pairs, ge)
+            ids, mask = batch(64, pairs, ge)
             with AMP():
                 _, acc = loss_acc(model, ids, mask)
             accs.append(float(acc))
-    return {"spec": spec, "seed": seed, "pairs": pairs, "steps": steps, "test_acc": sum(accs) / len(accs),
+    return {"spec": spec, "task": task, "seed": seed, "pairs": pairs, "steps": steps, "test_acc": sum(accs) / len(accs),
             "curve": curve, "wall_s": round(time.time() - t0, 1)}
 
 
@@ -97,6 +107,8 @@ def main():
     ap.add_argument("--lr", type=float, default=2e-3)
     ap.add_argument("--layers", type=int, default=4)
     ap.add_argument("--d-model", type=int, default=128)
+    ap.add_argument("--task", choices=["mqar", "copy"], default="mqar",
+                    help="copy: random span then its repeat; --pairs is the span length")
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
     torch.set_num_threads(1)
@@ -106,7 +118,7 @@ def main():
     res = json.loads(out.read_text()) if out.exists() else []
     for seed in map(int, args.seeds.split(",")):
         for spec in args.specs.split(","):
-            r = run(spec, args.steps, args.pairs, seed, args.lr, dims, args.bsz)
+            r = run(spec, args.steps, args.pairs, seed, args.lr, dims, args.bsz, args.task)
             print(f"RECALL {spec} seed={seed} acc={r['test_acc']:.4f}", flush=True)
             res.append(r)
             out.write_text(json.dumps(res, indent=1))

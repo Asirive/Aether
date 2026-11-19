@@ -1,0 +1,7 @@
+lab ablations/results/07_v2_factorial/j fsa2/attn/mod2 1
+lab ablations/results/07_v2_factorial/j attn/attn/mod2 1
+lab ablations/results/07_v2_factorial/j fsa/pm/mod 1
+lab ablations/results/07_v2_factorial/j attn/attn/mod 1
+lab ablations/results/07_v2_factorial/j fsa/attn/mod 1
+lab ablations/results/07_v2_factorial/j attn/pm/mod 1
+lab ablations/results/11_init_fix/j attn/pm2/none 0
