@@ -170,13 +170,13 @@ Lab models (7M, 800 steps, seed 0), quantized after training, fp32 eval. Increas
 
 ## 9. Length generalization (results/17_longctx)
 
-Lab models (7M, 800 steps, seed 0) trained on 256-byte windows only, then scored on
+Lab models (7M, 800 steps; seeds 0 and 1, LFM3 seed 0 only) trained on 256-byte windows only, then scored on
 2048-byte held-out windows. bpb by position:
 
 | design | 0-256 (trained) | 256-512 | 512-1024 | 1024-2048 |
 |---|---|---|---|---|
-| transformer | 2.015 | 2.774 | 3.375 | 3.845 |
-| **v2** | **1.577** | **1.553** | **1.488** | **1.567** |
+| transformer, seed 0 / 1 | 2.015 / 1.966 | 2.774 / 2.684 | 3.375 / 3.448 | 3.845 / 3.847 |
+| **v2, seed 0 / 1** | **1.577 / 1.605** | **1.553 / 1.596** | **1.488 / 1.516** | **1.567 / 1.580** |
 | LFM3-style | 1.726 | 1.684 | 1.596 | 1.682 |
 
 * The transformer breaks immediately past its training length (bpb nearly doubles). v2
