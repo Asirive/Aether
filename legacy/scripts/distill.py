@@ -37,6 +37,8 @@ from aether.model import AetherConfig, AetherForCausalLM  # noqa: E402
 PATTERNS = {
     "hybrid": ("conv", "ssm", "conv", "fsa2"),
     "ssm3": ("ssm", "ssm", "ssm", "fsa2"),
+    "hybrid_attn": ("conv", "ssm", "conv", "attn"),
+    "ssm3_attn": ("ssm", "ssm", "ssm", "attn"),
 }
 
 
