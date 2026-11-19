@@ -68,3 +68,11 @@ def test_distill_end_to_end_and_resume(tmp_path):
 
 def test_distill_vanilla_student_runs(tmp_path):
     assert _run(tmp_path, "vanilla", 2)["step"] == 2
+
+
+def test_distill_activation_checkpointing_runs(tmp_path):
+    out = distill.main(["--mock", "--student", "aether_v2", "--d-model", "64", "--d-inner", "128",
+                        "--layers", "4", "--seq-len", "128", "--micro-bsz", "2", "--grad-accum", "1",
+                        "--eval-rows", "2", "--eval-docs", "20", "--max-steps", "2", "--act-ckpt",
+                        "--out", str(tmp_path)])
+    assert out["step"] == 2 and out["student_loss"] < 10

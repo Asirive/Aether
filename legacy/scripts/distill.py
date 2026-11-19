@@ -238,8 +238,8 @@ def main(argv=None) -> dict:
     ap.add_argument("--d-inner", type=int, default=3072)
     ap.add_argument("--layers", type=int, default=28)
     ap.add_argument("--seq-len", type=int, default=2048)
-    ap.add_argument("--micro-bsz", type=int, default=8)
-    ap.add_argument("--grad-accum", type=int, default=4)
+    ap.add_argument("--micro-bsz", type=int, default=2)
+    ap.add_argument("--grad-accum", type=int, default=16)
     ap.add_argument("--tokens", type=float, default=1e9)
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--warmup-steps", type=int, default=500)
@@ -253,6 +253,7 @@ def main(argv=None) -> dict:
     ap.add_argument("--ckpt-every", type=int, default=250)
     ap.add_argument("--log-every", type=int, default=10)
     ap.add_argument("--compile", action="store_true")
+    ap.add_argument("--act-ckpt", action="store_true", help="recompute each block in backward (less memory)")
     ap.add_argument("--max-steps", type=int, default=0, help="stop early (testing)")
     ap.add_argument("--mock", action="store_true", help="tiny random teacher + local text (CPU test)")
     ap.add_argument("--out", required=True)
@@ -299,7 +300,14 @@ def main(argv=None) -> dict:
         print(f"resumed at step {step} (docs consumed {docs_skip})", flush=True)
     packer = Packer(tok, doc_stream(args, docs_skip), args.seq_len, eos)
 
-    fwd = torch.compile(student.hidden) if args.compile else student.hidden
+    def hidden_ckpt(ids):
+        x = student.token_embedding(ids)
+        for blk in student.blocks:
+            x = checkpoint(lambda t, blk=blk: blk(t)[0], x, use_reentrant=False)
+        return student.norm(x)
+
+    fwd = hidden_ckpt if args.act_ckpt else student.hidden
+    fwd = torch.compile(fwd) if args.compile else fwd
     meta = {"args": vars(args), "params": n_params, "tokens_per_step": tokens_per_step,
             "total_steps": total_steps, "device": device,
             "gpu": torch.cuda.get_device_name() if device == "cuda" else None}
