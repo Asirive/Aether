@@ -218,6 +218,7 @@ class SelectiveSSM(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         b, L, _ = x.shape
         di, N, H, P = self.d_inner, self.N, self.H, self.P
+        ft = torch.promote_types(x.dtype, torch.float32)
         zxbcdt = self.in_proj(x)
         z, xBC, dt = torch.split(zxbcdt, [di, di + 2 * N, H], dim=-1)
         xBC = F.pad(xBC.transpose(1, 2), (self.conv_k - 1, 0))
@@ -225,14 +226,39 @@ class SelectiveSSM(nn.Module):
         xs, Bm, Cm = torch.split(xBC, [di, N, N], dim=-1)
         if not self.selective_dt:
             dt = torch.zeros_like(dt)
-        dt = F.softplus(dt.float() + self.dt_bias)                     # (b,L,H)
-        a = -torch.exp(self.A_log.float()) * dt                        # log decay <= 0
-        xh = xs.float().view(b, L, H, P)
-        y = ssd_scan(xh * dt.unsqueeze(-1), a, Bm.float(), Cm.float(), self.chunk)
+        dt = F.softplus(dt.to(ft) + self.dt_bias)                     # (b,L,H)
+        a = -torch.exp(self.A_log.to(ft)) * dt                        # log decay <= 0
+        xh = xs.to(ft).view(b, L, H, P)
+        y = ssd_scan(xh * dt.unsqueeze(-1), a, Bm.to(ft), Cm.to(ft), self.chunk)
         y = y + xh * self.D.view(1, 1, H, 1)
         y = y.reshape(b, L, di)
-        y = F.rms_norm(y * F.silu(z.float()), (di,), self.norm_w.float(), 1e-6)
+        y = F.rms_norm(y * F.silu(z.to(ft)), (di,), self.norm_w.to(ft), 1e-6)
         return self.out_proj(y.to(x.dtype))
+
+    def init_state(self, batch: int, device=None, dtype=torch.float32) -> tuple[torch.Tensor, torch.Tensor]:
+        conv_dim = self.d_inner + 2 * self.N
+        return (torch.zeros(batch, conv_dim, self.conv_k - 1, device=device, dtype=dtype),
+                torch.zeros(batch, self.H, self.N, self.P, device=device, dtype=torch.float32))
+
+    def step(self, x: torch.Tensor, state: tuple[torch.Tensor, torch.Tensor]):
+        """One-token recurrent update. x: (b, d_model). Constant memory and compute per token."""
+        conv_buf, h = state
+        b = x.size(0)
+        di, N, H, P = self.d_inner, self.N, self.H, self.P
+        ft = h.dtype
+        z, xBC, dt = torch.split(self.in_proj(x), [di, di + 2 * N, H], dim=-1)
+        window = torch.cat([conv_buf, xBC.unsqueeze(-1).to(conv_buf.dtype)], dim=-1)
+        xBC = F.silu((window * self.conv.weight.squeeze(1)).sum(-1) + self.conv.bias)
+        xs, Bm, Cm = torch.split(xBC, [di, N, N], dim=-1)
+        if not self.selective_dt:
+            dt = torch.zeros_like(dt)
+        dt = F.softplus(dt.to(ft) + self.dt_bias)
+        decay = torch.exp(-torch.exp(self.A_log.to(ft)) * dt)
+        xh = xs.to(ft).view(b, H, P)
+        h = h * decay.view(b, H, 1, 1) + torch.einsum("bs,bhp->bhsp", Bm.to(ft), xh * dt.unsqueeze(-1))
+        y = torch.einsum("bs,bhsp->bhp", Cm.to(ft), h) + xh * self.D.view(1, H, 1)
+        y = F.rms_norm(y.reshape(b, di) * F.silu(z.to(ft)), (di,), self.norm_w.to(ft), 1e-6)
+        return self.out_proj(y.to(x.dtype)), (window[..., 1:], h)
 
 
 def matched_ssm_inner(d_model: int, head_dim: int = 32, state_dim: int = 64, conv_k: int = 4) -> int:

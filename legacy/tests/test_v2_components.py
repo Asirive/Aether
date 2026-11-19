@@ -165,3 +165,18 @@ def test_v2_ssm_init_survives_model_init():
     ssm = m.blocks[0].mixer
     dt = F.softplus(ssm.dt_bias)
     assert dt.min() >= 1e-3 * 0.99 and dt.max() <= 0.1 * 1.01
+
+
+def test_selective_ssm_step_matches_parallel_forward():
+    torch.manual_seed(0)
+    m = SelectiveSSM(64, matched_ssm_inner(64), head_dim=32, state_dim=16, chunk=16).double().eval()
+    x = torch.randn(2, 41, 64, dtype=torch.float64)
+    with torch.no_grad():
+        ref = m(x)
+        c, h = m.init_state(2, dtype=torch.float64)
+        state = (c, h.double())
+        outs = []
+        for t in range(x.size(1)):
+            y, state = m.step(x[:, t], state)
+            outs.append(y)
+    assert torch.allclose(torch.stack(outs, 1), ref, atol=1e-9)
