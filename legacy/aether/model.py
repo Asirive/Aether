@@ -308,6 +308,15 @@ class AetherForCausalLM(nn.Module):
 
         return result
 
+    def hidden(self, input_ids: torch.Tensor) -> torch.Tensor:
+        """Final normalised hidden states (no logits). For models without a depth router."""
+        if self.mod_router is not None:
+            raise NotImplementedError("hidden() is for models without a depth router")
+        x = self.token_embedding(input_ids)
+        for block in self.blocks:
+            x, _, _ = block(x)
+        return self.norm(x)
+
     def init_state(self, batch: int, device=None, dtype=torch.float32) -> list:
         """Per-layer decode state. Supported for vanilla and aether_v2 without a depth router."""
         if self.config.arch == "aether" or self.mod_router is not None:
