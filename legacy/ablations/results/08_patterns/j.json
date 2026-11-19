@@ -118,5 +118,70 @@
    "lr": 0.002,
    "amp_bf16": true
   }
+ },
+ {
+  "spec": "attn/conv/none",
+  "seed": 0,
+  "params": 6885500,
+  "val_bpb": 1.8296,
+  "curve": [
+   [
+    200,
+    2.3725,
+    2.4489,
+    0.613
+   ],
+   [
+    400,
+    1.8742,
+    2.1135,
+    0.5
+   ],
+   [
+    600,
+    1.7227,
+    1.9177,
+    0.438
+   ],
+   [
+    800,
+    1.6089,
+    1.8296,
+    0.461
+   ]
+  ],
+  "max_grad_norm": 5.469,
+  "nonfinite_steps": 0,
+  "leak": 0.0,
+  "gn_after_warmup": {
+   "median": 0.492,
+   "p99": 0.846,
+   "max": 1.195,
+   "n_over_5": 0,
+   "n_over_20": 0,
+   "argmax_step": 1
+  },
+  "copy0_bits": 1.7362,
+  "copy1_bits": 1.8956,
+  "copy2_bits": 1.89,
+  "copy_gain": -0.1538,
+  "causal_val_bpb": 1.9428,
+  "paired_full_bpb": 1.943,
+  "tok_per_s": 3585,
+  "wall_s": 914.0,
+  "dims": {
+   "d_model": 256,
+   "d_inner": 768,
+   "n_layers": 8,
+   "n_heads": 4,
+   "d_k": 64,
+   "seq_len": 256
+  },
+  "run": {
+   "steps": 800,
+   "bsz": 16,
+   "lr": 0.002,
+   "amp_bf16": true
+  }
  }
 ]

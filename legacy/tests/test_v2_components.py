@@ -198,3 +198,48 @@ def test_fsa2_step_matches_parallel_forward():
     # both paths take the softmax in fp32, so agreement is ~1e-8
     assert torch.allclose(torch.stack(outs, 1), ref, atol=1e-6)
     assert state["k_sum"].size(2) == 3 * (45 // 8 - 1)
+
+
+def test_gated_short_conv_causal_step_and_param_match():
+    from aether.components.v2 import GatedShortConv
+    torch.manual_seed(0)
+    m = GatedShortConv(64).double().eval()
+    assert _causal(m, 64, 40, 17) < 1e-12
+    x = torch.randn(2, 20, 64, dtype=torch.float64)
+    with torch.no_grad():
+        ref = m(x)
+        st = m.init_state(2, dtype=torch.float64)
+        outs = []
+        for t in range(20):
+            y, st = m.step(x[:, t], st)
+            outs.append(y)
+    assert torch.allclose(torch.stack(outs, 1), ref, atol=1e-12)
+    n = sum(p.numel() for p in GatedShortConv(256).parameters())
+    assert abs(n - 4 * 256 * 256) / (4 * 256 * 256) < 0.01
+
+
+def test_v2_model_accepts_conv_layers():
+    m = AetherForCausalLM(_v2_cfg(layer_pattern=("conv", "ssm", "conv", "fsa2")))
+    kinds = [type(b.mixer).__name__ for b in m.blocks]
+    assert kinds == ["GatedShortConv", "SelectiveSSM", "GatedShortConv", "ChunkCompressedAttention"]
+
+
+def test_model_step_decode_matches_forward_for_all_mixers():
+    for arch, pattern in [("aether_v2", ("conv", "ssm", "attn", "fsa2")), ("vanilla", None)]:
+        torch.manual_seed(0)
+        kw = dict(arch=arch, layer_pattern=pattern)
+        m = AetherForCausalLM(_v2_cfg(**kw)).double().eval()
+        for blk in m.blocks:
+            for name in ("cos", "sin", "rope_cos", "rope_sin"):
+                if hasattr(blk.mixer, name):
+                    setattr(blk.mixer, name, getattr(blk.mixer, name).double())
+        ids = torch.randint(0, 64, (2, 40))
+        with torch.no_grad():
+            ref = m(ids)["logits"]
+            st = m.init_state(2, dtype=torch.float64)
+            st = [tuple(t.double() for t in s) if isinstance(s, tuple) else s for s in st]
+            outs = []
+            for t in range(40):
+                lg, st = m.step(ids[:, t], st)
+                outs.append(lg)
+        assert torch.allclose(torch.stack(outs, 1), ref, atol=1e-6), arch

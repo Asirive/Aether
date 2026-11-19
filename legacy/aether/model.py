@@ -14,12 +14,13 @@ from aether.components.polymamba import PolyMamba2
 from aether.components.v2 import (
     CausalDepthRouter,
     ChunkCompressedAttention,
+    GatedShortConv,
     SelectiveSSM,
     matched_ssm_inner,
 )
 
 # Mixer names usable in AetherConfig.layer_pattern (arch="aether_v2").
-V2_MIXERS = ("ssm", "fsa2", "attn")
+V2_MIXERS = ("ssm", "fsa2", "attn", "conv")
 from aether.utils.numerics import to_fp32
 
 
@@ -122,6 +123,8 @@ class AetherBlock(nn.Module):
                 head_dim=config.ssm_head_dim,
                 state_dim=config.ssm_state_dim,
             )
+        elif kind == "conv":
+            self.mixer = GatedShortConv(config.d_model)
         elif kind == "fsa2":
             self.mixer = ChunkCompressedAttention(
                 d_model=config.d_model,
@@ -163,7 +166,7 @@ class AetherBlock(nn.Module):
         if isinstance(self.mixer, PolyMamba2):
             kbal = self.mixer.balance_loss()
             ortho = torch.zeros((), device=x.device, dtype=x.dtype)
-        elif isinstance(self.mixer, (CausalSelfAttention, SelectiveSSM, ChunkCompressedAttention)):
+        elif isinstance(self.mixer, (CausalSelfAttention, SelectiveSSM, ChunkCompressedAttention, GatedShortConv)):
             kbal = torch.zeros((), device=x.device, dtype=x.dtype)
             ortho = torch.zeros((), device=x.device, dtype=x.dtype)
         else:
@@ -172,6 +175,12 @@ class AetherBlock(nn.Module):
         x = x + mix
         x = x + self.ffn(self.norm2(x))
         return x, kbal, ortho
+
+
+    def step(self, x: torch.Tensor, state):
+        mix, state = self.mixer.step(self.norm1(x), state)
+        x = x + mix
+        return x + self.ffn(self.norm2(x)), state
 
 
 class SwiGLU(nn.Module):
@@ -298,6 +307,22 @@ class AetherForCausalLM(nn.Module):
             result["task_loss"] = task_loss
 
         return result
+
+    def init_state(self, batch: int, device=None, dtype=torch.float32) -> list:
+        """Per-layer decode state. Supported for vanilla and aether_v2 without a depth router."""
+        if self.config.arch == "aether" or self.mod_router is not None:
+            raise NotImplementedError("recurrent decode needs arch vanilla/aether_v2 with no router")
+        return [b.mixer.init_state(batch, device=device, dtype=dtype) for b in self.blocks]
+
+    @torch.no_grad()
+    def step(self, token: torch.Tensor, state: list) -> tuple[torch.Tensor, list]:
+        """One token in, next-token logits out. token: (b,) ids."""
+        x = self.token_embedding(token)
+        new_state = []
+        for block, st in zip(self.blocks, state):
+            x, st = block.step(x, st)
+            new_state.append(st)
+        return self._compute_logits(self.norm(x)), new_state
 
     def _chunked_causal_loss(
         self,

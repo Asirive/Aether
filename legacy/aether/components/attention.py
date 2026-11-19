@@ -41,13 +41,13 @@ class CausalSelfAttention(nn.Module):
         self.register_buffer("rope_cos", freqs.cos(), persistent=False)
         self.register_buffer("rope_sin", freqs.sin(), persistent=False)
 
-    def _rope(self, x: torch.Tensor) -> torch.Tensor:
+    def _rope(self, x: torch.Tensor, offset: int = 0) -> torch.Tensor:
         # x: [bsz, n_heads, seq, d_k]; rotates interleaved (even, odd) pairs.
         seq = x.size(-2)
-        if seq > self.rope_cos.size(0):
-            raise ValueError(f"seq_len {seq} exceeds max_seq_len {self.rope_cos.size(0)}")
-        cos = self.rope_cos[:seq]
-        sin = self.rope_sin[:seq]
+        if offset + seq > self.rope_cos.size(0):
+            raise ValueError(f"seq_len {offset + seq} exceeds max_seq_len {self.rope_cos.size(0)}")
+        cos = self.rope_cos[offset : offset + seq]
+        sin = self.rope_sin[offset : offset + seq]
         xf = x.float()
         x1, x2 = xf[..., 0::2], xf[..., 1::2]
         out = torch.stack((x1 * cos - x2 * sin, x1 * sin + x2 * cos), dim=-1).flatten(-2)
@@ -64,3 +64,17 @@ class CausalSelfAttention(nn.Module):
         v = heads(self.w_v(x))
         out = F.scaled_dot_product_attention(q, k, v, is_causal=True)
         return self.w_o(out.transpose(1, 2).reshape(bsz, seq, self.n_heads * self.d_k))
+
+    def init_state(self, batch: int, device=None, dtype=torch.float32) -> dict:
+        e = torch.zeros(batch, self.n_heads, 0, self.d_k, device=device, dtype=dtype)
+        return {"k": e, "v": e}
+
+    def step(self, x: torch.Tensor, state: dict):
+        """One-token decode with a full KV cache (grows by one entry per token)."""
+        b = x.size(0)
+        t = state["k"].size(2)
+        q = self._rope(self.w_q(x).view(b, self.n_heads, 1, self.d_k), t)
+        k = torch.cat([state["k"], self._rope(self.w_k(x).view(b, self.n_heads, 1, self.d_k), t)], dim=2)
+        v = torch.cat([state["v"], self.w_v(x).view(b, self.n_heads, 1, self.d_k)], dim=2)
+        out = F.scaled_dot_product_attention(q, k, v)
+        return self.w_o(out.reshape(b, self.n_heads * self.d_k)), {"k": k, "v": v}

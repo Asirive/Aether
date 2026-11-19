@@ -128,5 +128,70 @@
    "lr": 0.002,
    "amp_bf16": true
   }
+ },
+ {
+  "spec": "P:pm2-pm2-pm2-fsa2-pm2-pm2-pm2-fsa2/none",
+  "seed": 0,
+  "params": 6866978,
+  "val_bpb": 1.6907,
+  "curve": [
+   [
+    200,
+    1.9853,
+    2.1409,
+    0.571
+   ],
+   [
+    400,
+    1.6485,
+    1.9027,
+    0.526
+   ],
+   [
+    600,
+    1.5312,
+    1.7562,
+    0.463
+   ],
+   [
+    800,
+    1.4378,
+    1.6907,
+    0.479
+   ]
+  ],
+  "max_grad_norm": 18.268,
+  "nonfinite_steps": 0,
+  "leak": 0.0,
+  "gn_after_warmup": {
+   "median": 0.503,
+   "p99": 1.283,
+   "max": 2.392,
+   "n_over_5": 0,
+   "n_over_20": 0,
+   "argmax_step": 5
+  },
+  "copy0_bits": 1.6084,
+  "copy1_bits": 1.7656,
+  "copy2_bits": 1.7619,
+  "copy_gain": -0.1535,
+  "causal_val_bpb": 1.7595,
+  "paired_full_bpb": 1.7592,
+  "tok_per_s": 2146,
+  "wall_s": 1527.1,
+  "dims": {
+   "d_model": 256,
+   "d_inner": 768,
+   "n_layers": 8,
+   "n_heads": 4,
+   "d_k": 64,
+   "seq_len": 256
+  },
+  "run": {
+   "steps": 800,
+   "bsz": 16,
+   "lr": 0.002,
+   "amp_bf16": true
+  }
  }
 ]
