@@ -17,14 +17,35 @@ from __future__ import annotations
 import argparse
 import itertools
 import json
+import re
 import statistics as st
 from pathlib import Path
 
 
+_RESULT = re.compile(r"^RESULT (\S+) seed=(\d+) val_bpb=([\d.]+) params=([\d,]+) causal_bpb=([\d.]+) "
+                     r"leak=(\S+) tok/s=(\d+) gmax=([\d.]+)")
+
+
 def load(d: Path) -> list[dict]:
+    """JSON results, plus any run that only reached the log.
+
+    Early queue workers wrote one shared JSON without a lock, so concurrent runs could
+    overwrite each other's entries; the RESULT line in the log is always complete.
+    """
     out = []
     for f in sorted(d.glob("*.json")):
         out.extend(json.loads(f.read_text()))
+    have = {(r["spec"], r["seed"]) for r in out}
+    for f in sorted(d.glob("*.log")):
+        for line in f.read_text().splitlines():
+            m = _RESULT.match(line)
+            if not m or (m[1], int(m[2])) in have:
+                continue
+            have.add((m[1], int(m[2])))
+            out.append({"spec": m[1], "seed": int(m[2]), "val_bpb": float(m[3]),
+                        "params": int(m[4].replace(",", "")), "causal_val_bpb": float(m[5]),
+                        "leak": float(m[6]), "tok_per_s": int(m[7]), "max_grad_norm": float(m[8]),
+                        "from_log": True})
     return out
 
 

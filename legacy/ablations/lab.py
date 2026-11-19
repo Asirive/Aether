@@ -463,16 +463,18 @@ def causality_leak(model: LabLM, seq_len: int, seed: int = 0) -> float:
 
 
 @torch.no_grad()
-def copy_probe(model: LabLM, span: int = 64, reps: int = 2, n: int = 32, seed: int = 7) -> dict:
-    """In-context retrieval: random bytes repeated. Loss (bits/token) on each later repeat.
+def copy_probe(model: LabLM, val: torch.Tensor, span: int = 64, reps: int = 2, n: int = 32, seed: int = 7) -> dict:
+    """In-context retrieval: a held-out text span repeated. Loss (bits/byte) on each copy.
 
-    The first copy is unpredictable (8 bits/token). A model that can look up what followed the
-    same token earlier in its context drives later copies toward 0; a model that cannot, stays
-    near 8. Needs no task-specific training, so it runs on every LM checkpoint.
+    copy0 is ordinary LM loss on the span. A model that can look up what followed the same
+    context earlier drives later copies toward 0; `copy_gain` = copy0 - copy2 measures that.
+    Uses in-distribution text (random bytes are out of distribution for a code-trained LM).
+    Needs no task-specific training, so it runs on every LM checkpoint.
     """
     model.eval()
     g = torch.Generator().manual_seed(seed)
-    base = torch.randint(0, 256, (n, span), generator=g)
+    starts = torch.randint(0, val.numel() - span, (n,), generator=g).tolist()
+    base = torch.stack([val[i : i + span] for i in starts])
     ids = base.repeat(1, reps + 1)
     with AMP():
         logits = model(ids).float()
@@ -480,9 +482,22 @@ def copy_probe(model: LabLM, span: int = 64, reps: int = 2, n: int = 32, seed: i
                          reduction="none").view(n, -1) / math.log(2)
     model.train()
     out = {}
-    for r in range(1, reps + 1):
-        out[f"copy{r}_bits"] = round(float(lp[:, r * span : (r + 1) * span - 1].mean()), 4)
+    for r in range(0, reps + 1):
+        out[f"copy{r}_bits"] = round(float(lp[:, max(r * span, 8) : (r + 1) * span - 1].mean()), 4)
+    out["copy_gain"] = round(out["copy0_bits"] - out[f"copy{reps}_bits"], 4)
     return out
+
+
+def append_result(out: Path, r: dict) -> None:
+    """Append one result under an exclusive lock: parallel jobs share one results file."""
+    import fcntl
+    with open(str(out) + ".lock", "w") as lk:
+        fcntl.flock(lk, fcntl.LOCK_EX)
+        rs = json.loads(out.read_text()) if out.exists() else []
+        rs.append(r)
+        tmp = out.with_suffix(".tmp")
+        tmp.write_text(json.dumps(rs, indent=1))
+        tmp.replace(out)
 
 
 # ---------------------------------------------------------------------------------------
@@ -551,7 +566,7 @@ def train(spec: Spec, rc: RunCfg, log=print) -> dict:
         "val_bpb": curve[-1][2], "curve": curve, "max_grad_norm": round(gmax, 3),
         "nonfinite_steps": nonfinite, "leak": causality_leak(model, d.seq_len),
         "gn_after_warmup": _gn_stats(gns[warm_steps:]),
-        **copy_probe(model),
+        **copy_probe(model, va),
         **dict(zip(("causal_val_bpb", "paired_full_bpb"),
                    (round(v, 4) for v in causal_evaluate(model, va, d.seq_len)))),
         "tok_per_s": round(rc.steps * rc.bsz * d.seq_len / wall), "wall_s": round(wall, 1),
@@ -592,9 +607,8 @@ def main() -> None:
             r["dims"] = asdict(dims)
             r["run"] = {"steps": args.steps, "bsz": args.bsz, "lr": args.lr, "amp_bf16": USE_AMP}
             print(f"RESULT {r['spec']} seed={seed} val_bpb={r['val_bpb']} params={r['params']:,} "
-                  f"causal_bpb={r['causal_val_bpb']} leak={r['leak']:.2e} tok/s={r['tok_per_s']} gmax={r['max_grad_norm']} copy2={r['copy2_bits']}", flush=True)
-            results.append(r)
-            out.write_text(json.dumps(results, indent=1))
+                  f"causal_bpb={r['causal_val_bpb']} leak={r['leak']:.2e} tok/s={r['tok_per_s']} gmax={r['max_grad_norm']} copy_gain={r['copy_gain']}", flush=True)
+            append_result(out, r)
 
 
 if __name__ == "__main__":

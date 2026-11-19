@@ -1,0 +1,65 @@
+[
+ {
+  "spec": "P:pm2-pm2-pm2-fsa2-pm2-pm2-pm2-fsa2/none",
+  "seed": 1,
+  "params": 6866978,
+  "val_bpb": 1.6652,
+  "curve": [
+   [
+    200,
+    1.9193,
+    2.1522,
+    0.623
+   ],
+   [
+    400,
+    1.744,
+    1.8903,
+    0.526
+   ],
+   [
+    600,
+    1.5323,
+    1.7341,
+    0.484
+   ],
+   [
+    800,
+    1.4348,
+    1.6652,
+    0.423
+   ]
+  ],
+  "max_grad_norm": 22.549,
+  "nonfinite_steps": 0,
+  "leak": 0.0,
+  "gn_after_warmup": {
+   "median": 0.511,
+   "p99": 1.306,
+   "max": 2.436,
+   "n_over_5": 0,
+   "n_over_20": 0,
+   "argmax_step": 69
+  },
+  "copy1_bits": 14.161,
+  "copy2_bits": 14.3784,
+  "causal_val_bpb": 1.7227,
+  "paired_full_bpb": 1.7229,
+  "tok_per_s": 2163,
+  "wall_s": 1514.6,
+  "dims": {
+   "d_model": 256,
+   "d_inner": 768,
+   "n_layers": 8,
+   "n_heads": 4,
+   "d_k": 64,
+   "seq_len": 256
+  },
+  "run": {
+   "steps": 800,
+   "bsz": 16,
+   "lr": 0.002,
+   "amp_bf16": true
+  }
+ }
+]

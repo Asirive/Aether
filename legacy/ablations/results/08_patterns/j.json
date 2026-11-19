@@ -58,5 +58,65 @@
    "lr": 0.002,
    "amp_bf16": true
   }
+ },
+ {
+  "spec": "P:pm2-pm2-pm2-fsa2-pm2-pm2-pm2-fsa2/none",
+  "seed": 1,
+  "params": 6866978,
+  "val_bpb": 1.7339,
+  "curve": [
+   [
+    200,
+    2.0382,
+    2.2377,
+    0.558
+   ],
+   [
+    400,
+    1.8243,
+    1.9599,
+    0.547
+   ],
+   [
+    600,
+    1.5983,
+    1.8043,
+    0.476
+   ],
+   [
+    800,
+    1.498,
+    1.7339,
+    0.437
+   ]
+  ],
+  "max_grad_norm": 84.828,
+  "nonfinite_steps": 0,
+  "leak": 0.0,
+  "gn_after_warmup": {
+   "median": 0.507,
+   "p99": 1.124,
+   "max": 1.716,
+   "n_over_5": 0,
+   "n_over_20": 0,
+   "argmax_step": 513
+  },
+  "causal_val_bpb": 1.8177,
+  "tok_per_s": 1948,
+  "wall_s": 1681.8,
+  "dims": {
+   "d_model": 256,
+   "d_inner": 768,
+   "n_layers": 8,
+   "n_heads": 4,
+   "d_k": 64,
+   "seq_len": 256
+  },
+  "run": {
+   "steps": 800,
+   "bsz": 16,
+   "lr": 0.002,
+   "amp_bf16": true
+  }
  }
 ]
