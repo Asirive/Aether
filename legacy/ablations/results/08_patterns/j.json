@@ -1,0 +1,62 @@
+[
+ {
+  "spec": "P:pm2-pm2-pm2-fsa2-pm2-pm2-pm2-fsa2/none",
+  "seed": 0,
+  "params": 6866978,
+  "val_bpb": 1.7114,
+  "curve": [
+   [
+    200,
+    2.1028,
+    2.2365,
+    0.604
+   ],
+   [
+    400,
+    1.7162,
+    1.9507,
+    0.482
+   ],
+   [
+    600,
+    1.5907,
+    1.7861,
+    0.436
+   ],
+   [
+    800,
+    1.4959,
+    1.7114,
+    0.478
+   ]
+  ],
+  "max_grad_norm": 87.894,
+  "nonfinite_steps": 0,
+  "leak": 0.0,
+  "gn_after_warmup": {
+   "median": 0.5,
+   "p99": 1.211,
+   "max": 3.465,
+   "n_over_5": 0,
+   "n_over_20": 0,
+   "argmax_step": 1
+  },
+  "causal_val_bpb": 1.7577,
+  "tok_per_s": 2204,
+  "wall_s": 1486.8,
+  "dims": {
+   "d_model": 256,
+   "d_inner": 768,
+   "n_layers": 8,
+   "n_heads": 4,
+   "d_k": 64,
+   "seq_len": 256
+  },
+  "run": {
+   "steps": 800,
+   "bsz": 16,
+   "lr": 0.002,
+   "amp_bf16": true
+  }
+ }
+]

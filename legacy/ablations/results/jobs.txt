@@ -1,5 +1,3 @@
-lab ablations/results/10_vs_lfm/j P:conv-conv-swa-attn-conv-conv-swa-attn/none 1
-lab ablations/results/10_vs_lfm/j P:pm2-pm2-swa-attn-pm2-pm2-swa-attn/none 1
 recall ablations/results/09_recall/r P:conv-swa-conv-attn/none 0
 recall ablations/results/09_recall/r P:pm2-swa-pm2-attn/none 0
 recall ablations/results/09_recall/r attn/attn/none 0
