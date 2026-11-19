@@ -188,5 +188,265 @@
    "lr": 0.002,
    "amp_bf16": true
   }
+ },
+ {
+  "spec": "attn/pm/none",
+  "seed": 1,
+  "params": 8403584,
+  "val_bpb": 2.1081,
+  "curve": [
+   [
+    200,
+    3.0805,
+    3.102,
+    0.624
+   ],
+   [
+    400,
+    2.4732,
+    2.5534,
+    0.671
+   ],
+   [
+    600,
+    2.0696,
+    2.2428,
+    0.62
+   ],
+   [
+    800,
+    1.8985,
+    2.1081,
+    0.636
+   ]
+  ],
+  "max_grad_norm": 16.84,
+  "nonfinite_steps": 0,
+  "leak": 0.0,
+  "gn_after_warmup": {
+   "median": 0.671,
+   "p99": 1.637,
+   "max": 6.536,
+   "n_over_5": 1,
+   "n_over_20": 0,
+   "argmax_step": 5
+  },
+  "copy0_bits": 2.0677,
+  "copy1_bits": 2.2127,
+  "copy2_bits": 2.2108,
+  "copy_gain": -0.1431,
+  "causal_val_bpb": 2.2113,
+  "paired_full_bpb": 2.2118,
+  "tok_per_s": 2455,
+  "wall_s": 1334.5,
+  "dims": {
+   "d_model": 256,
+   "d_inner": 768,
+   "n_layers": 8,
+   "n_heads": 4,
+   "d_k": 64,
+   "seq_len": 256
+  },
+  "run": {
+   "steps": 800,
+   "bsz": 16,
+   "lr": 0.002,
+   "amp_bf16": true
+  }
+ },
+ {
+  "spec": "fsa/pm/none",
+  "seed": 1,
+  "params": 8404112,
+  "val_bpb": 2.1147,
+  "curve": [
+   [
+    200,
+    2.9975,
+    3.0345,
+    0.64
+   ],
+   [
+    400,
+    2.4615,
+    2.5566,
+    0.562
+   ],
+   [
+    600,
+    2.0981,
+    2.2509,
+    0.661
+   ],
+   [
+    800,
+    1.9297,
+    2.1147,
+    0.627
+   ]
+  ],
+  "max_grad_norm": 6.852,
+  "nonfinite_steps": 0,
+  "leak": 0.0,
+  "gn_after_warmup": {
+   "median": 0.639,
+   "p99": 2.349,
+   "max": 6.617,
+   "n_over_5": 1,
+   "n_over_20": 0,
+   "argmax_step": 3
+  },
+  "copy0_bits": 2.0714,
+  "copy1_bits": 2.2127,
+  "copy2_bits": 2.2121,
+  "copy_gain": -0.1407,
+  "causal_val_bpb": 2.1785,
+  "paired_full_bpb": 2.1789,
+  "tok_per_s": 2366,
+  "wall_s": 1384.7,
+  "dims": {
+   "d_model": 256,
+   "d_inner": 768,
+   "n_layers": 8,
+   "n_heads": 4,
+   "d_k": 64,
+   "seq_len": 256
+  },
+  "run": {
+   "steps": 800,
+   "bsz": 16,
+   "lr": 0.002,
+   "amp_bf16": true
+  }
+ },
+ {
+  "spec": "attn/pm2/mod2",
+  "seed": 1,
+  "params": 6873455,
+  "val_bpb": 1.6866,
+  "curve": [
+   [
+    200,
+    1.9389,
+    2.1696,
+    0.586
+   ],
+   [
+    400,
+    1.7686,
+    1.9072,
+    0.502
+   ],
+   [
+    600,
+    1.552,
+    1.7551,
+    0.495
+   ],
+   [
+    800,
+    1.4449,
+    1.6866,
+    0.41
+   ]
+  ],
+  "max_grad_norm": 16.946,
+  "nonfinite_steps": 0,
+  "leak": 0.0,
+  "gn_after_warmup": {
+   "median": 0.505,
+   "p99": 1.194,
+   "max": 1.556,
+   "n_over_5": 0,
+   "n_over_20": 0,
+   "argmax_step": 5
+  },
+  "copy0_bits": 1.6572,
+  "copy1_bits": 1.7876,
+  "copy2_bits": 1.7763,
+  "copy_gain": -0.1191,
+  "causal_val_bpb": 1.7642,
+  "paired_full_bpb": 1.7643,
+  "tok_per_s": 2206,
+  "wall_s": 1485.5,
+  "dims": {
+   "d_model": 256,
+   "d_inner": 768,
+   "n_layers": 8,
+   "n_heads": 4,
+   "d_k": 64,
+   "seq_len": 256
+  },
+  "run": {
+   "steps": 800,
+   "bsz": 16,
+   "lr": 0.002,
+   "amp_bf16": true
+  }
+ },
+ {
+  "spec": "fsa2/pm2/mod2",
+  "seed": 1,
+  "params": 6877551,
+  "val_bpb": 1.6721,
+  "curve": [
+   [
+    200,
+    1.9498,
+    2.1652,
+    0.612
+   ],
+   [
+    400,
+    1.7763,
+    1.9095,
+    0.528
+   ],
+   [
+    600,
+    1.5533,
+    1.7419,
+    0.482
+   ],
+   [
+    800,
+    1.4548,
+    1.6721,
+    0.42
+   ]
+  ],
+  "max_grad_norm": 16.945,
+  "nonfinite_steps": 0,
+  "leak": 0.0,
+  "gn_after_warmup": {
+   "median": 0.509,
+   "p99": 1.135,
+   "max": 1.813,
+   "n_over_5": 0,
+   "n_over_20": 0,
+   "argmax_step": 11
+  },
+  "copy0_bits": 1.6116,
+  "copy1_bits": 1.8036,
+  "copy2_bits": 1.8039,
+  "copy_gain": -0.1923,
+  "causal_val_bpb": 1.7958,
+  "paired_full_bpb": 1.7958,
+  "tok_per_s": 2091,
+  "wall_s": 1567.3,
+  "dims": {
+   "d_model": 256,
+   "d_inner": 768,
+   "n_layers": 8,
+   "n_heads": 4,
+   "d_k": 64,
+   "seq_len": 256
+  },
+  "run": {
+   "steps": 800,
+   "bsz": 16,
+   "lr": 0.002,
+   "amp_bf16": true
+  }
  }
 ]

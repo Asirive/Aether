@@ -64,9 +64,9 @@ data-dependent control flow, which NPUs handle badly, so v2 drops it.
 * Half the SSM layers can be cheap gated short convs with no quality loss and ~1.4x speed.
 * Same-slot comparison: SSM beats short conv by 0.10 bpb (attn/pm2 1.73 vs attn/conv 1.83).
   What beats LFM3 is the SSM, not the layout.
-* Compressed vs full attention in the 1-in-4 slot: within noise (-0.018 and -0.003 for full).
-  Full attention is the simpler, better-supported op on an NPU; fsa2 is kept as the option
-  for long contexts where the KV cache matters.
+* Compressed vs full attention in the 1-in-4 slot: within noise on bpb (-0.018 and -0.003
+  for full), but full attention wins decisively on exact retrieval (section 5) and is the
+  better-supported op on an NPU.
 * All-SSM is worse than SSM + some attention.
 
 ## 4. Fixes made along the way
@@ -79,18 +79,37 @@ data-dependent control flow, which NPUs handle badly, so v2 drops it.
 * **Lost results**: parallel jobs overwrote a shared JSON. Writes are locked now and the
   analyzer also reads every RESULT line from the logs.
 
-## 5. What the CPU lab cannot answer
+## 5. In-context retrieval (copy task)
 
-* **In-context retrieval.** At this scale no model, including pure attention, learns to copy
-  a repeated span (copy gain -0.14 to -0.16 for every model), and the MQAR task does not train
-  within the CPU budget. Whether the SSM-heavy design gives up retrieval is the first thing
-  the GPU rehearsal measures (`copy_gain` in `scripts/distill.py`).
+The language-model runs are too short for any model, attention included, to learn copying
+(copy gain -0.14 to -0.16 everywhere), and MQAR does not train within the CPU budget. So
+retrieval was tested directly: `ablations/recall.py --task copy` trains 4-layer models to
+reproduce a span of 128 random tokens after seeing it once (1000 steps; results/14_copy).
+
+| 4-layer design | exact-copy accuracy |
+|---|---|
+| attention x4 | 100% |
+| **conv, SSM, conv, attention (v2)** | **100%** |
+| LFM3-style: conv, conv, SWA, attention | 3.6% |
+| conv, SSM, conv, compressed attention | 3.4% |
+| SSM, SSM, SSM, compressed attention | 0.8% |
+| SSM x4 | 0.4% |
+| conv x4 (control) | 0.4% |
+
+* The v2 design keeps attention's exact retrieval: one full-attention layer in four suffices.
+* Compressed attention cannot copy exactly from beyond its raw window (summaries are lossy),
+  and SSMs alone cannot store 128 random tokens. This is why v2 uses full attention in the
+  1-in-4 slot, not fsa2, even though the two tie on bits per byte.
+* The LFM3-style stack also has one full-attention layer but did not learn the task in 1000
+  steps (single seed; second seeds queued).
+
+## 6. What the CPU lab cannot answer
 * **Scale.** 7M parameters and 800 steps. Effects can shrink or flip at 0.5-1B.
 * **Real speed.** The SSM scan is plain PyTorch; the NPU/GPU numbers need the target hardware.
 
 ## Recommended v2 for the rehearsal and the Snapdragon target
 
 `conv, SSM, conv, attn` repeated (28 layers at 0.54B), no router: equal-best quality,
-fastest of the SSM designs, constant-memory decode in 21 of 28 layers, and only standard
+exact retrieval as good as a transformer, fastest of the SSM designs, constant-memory decode in 21 of 28 layers, and only standard
 ops (matmul, depthwise conv, elementwise, softmax attention). Run in `scripts/distill.py`
 with `--pattern hybrid_attn`.
