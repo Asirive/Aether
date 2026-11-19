@@ -130,6 +130,20 @@ bpb on all positions of 96 held-out windows (~24k predictions per number):
   rehearsal compares them after that transition.
 * Max gradient norm: transformer 83 / 16 / 20, v2 17 / 18 / 19, LFM3 13 / 14 / 13.
 
+**Longer training (results/15_long): 6400 steps, seed 0, same 15M models.**
+
+| step | 1600 | 3200 | 4000 | 4800 | 5600 | 6400 |
+|---|---|---|---|---|---|---|
+| transformer | 1.798 | 1.602 | 1.482 | 1.390 | 1.354 | **1.337** |
+| v2 | 1.527 | 1.305 | 1.257 | 1.223 | 1.220 | **1.211** |
+| gap | -0.27 | -0.30 | -0.23 | -0.17 | -0.13 | **-0.13** |
+
+* With twice the training, the transformer forms induction heads (copy gain +0.25) and the
+  gap narrows, but it levels off at -0.13 bpb (-9.4%) over the last 1600 steps rather than
+  closing. v2 still copies better (copy gain +0.38) and also leads on the strict metric
+  (1.379 vs 1.452).
+* Single seed. Together with the three 3200-step seeds, v2 led in every run (4 of 4).
+
 ## 7. Deployment check at the real size (0.54B, static-shape ONNX)
 
 `scripts/export_onnx.py` exports one decode step with every shape fixed, as the Snapdragon
