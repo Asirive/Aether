@@ -89,8 +89,8 @@ reproduce a span of 128 random tokens after seeing it once (1000 steps; results/
 | 4-layer design | exact-copy accuracy |
 |---|---|
 | attention x4 | 100% |
-| **conv, SSM, conv, attention (v2)** | **100%** |
-| LFM3-style: conv, conv, SWA, attention | 3.6% |
+| **conv, SSM, conv, attention (v2)** | **100% / 100% (seed 0 / 1)** |
+| LFM3-style: conv, conv, SWA, attention | 3.6% / 15.7% (seed 0 / 1) |
 | conv, SSM, conv, compressed attention | 3.4% |
 | SSM, SSM, SSM, compressed attention | 0.8% |
 | SSM x4 | 0.4% |
@@ -101,10 +101,30 @@ reproduce a span of 128 random tokens after seeing it once (1000 steps; results/
   and SSMs alone cannot store 128 random tokens. This is why v2 uses full attention in the
   1-in-4 slot, not fsa2, even though the two tie on bits per byte.
 * The LFM3-style stack also has one full-attention layer but did not learn the task in 1000
-  steps (single seed; second seeds queued).
+  steps (3.6% and 15.7% over two seeds).
 
-## 6. What the CPU lab cannot answer
-* **Scale.** 7M parameters and 800 steps. Effects can shrink or flip at 0.5-1B.
+## 6. Scale-up check (2.2x parameters, 4x steps)
+
+d_model 384, SwiGLU 1152, 8 layers (~15.4M params), 3200 steps (results/13_scale, seed 0;
+seed 1 queued).
+
+| 8-layer design | bpb, all positions | bpb, strict prefix-only | copy gain (bits) |
+|---|---|---|---|
+| transformer | 1.601 | 1.627 | -0.197 |
+| LFM3-style | 1.477 | 1.599 | -0.119 |
+| **conv, SSM, conv, attn (v2)** | **1.305** | **1.505** | **+0.192** |
+
+* v2 still leads both: -0.30 bpb (-19%) vs the transformer and -0.17 vs LFM3 on all
+  positions; -0.12 and -0.09 on the strict metric (which samples fewer, earlier positions).
+* The strict-metric margin over the transformer is smaller than at 7M (-0.12 vs -0.36), so
+  the advantage is not guaranteed to hold at 0.5B; that is the rehearsal's job.
+* v2 is the only design whose copy gain turned positive: with longer training it started
+  using the context to predict repeated text (repeat costs 1.22 bits/byte vs 1.41 the
+  first time). The transformer and LFM3 had not learned this yet at the same step.
+* Max gradient norm: transformer 83, v2 17, LFM3 13.
+
+## 7. What the CPU lab cannot answer
+* **Scale.** 15M parameters and 3200 steps at most. Effects can shrink or flip at 0.5-1B.
 * **Real speed.** The SSM scan is plain PyTorch; the NPU/GPU numbers need the target hardware.
 
 ## Recommended v2 for the rehearsal and the Snapdragon target
