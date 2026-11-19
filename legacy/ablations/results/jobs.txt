@@ -1,4 +1,3 @@
-lab ablations/results/10_vs_lfm/j P:conv-conv-swa-attn-conv-conv-swa-attn/none 0
 lab ablations/results/10_vs_lfm/j P:pm2-pm2-swa-attn-pm2-pm2-swa-attn/none 0
 lab ablations/results/10_vs_lfm/j P:conv-conv-swa-attn-conv-conv-swa-attn/none 1
 lab ablations/results/10_vs_lfm/j P:pm2-pm2-swa-attn-pm2-pm2-swa-attn/none 1
