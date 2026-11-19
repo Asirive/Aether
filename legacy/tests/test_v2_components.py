@@ -180,3 +180,21 @@ def test_selective_ssm_step_matches_parallel_forward():
             y, state = m.step(x[:, t], state)
             outs.append(y)
     assert torch.allclose(torch.stack(outs, 1), ref, atol=1e-9)
+
+
+def test_fsa2_step_matches_parallel_forward():
+    torch.manual_seed(0)
+    m = ChunkCompressedAttention(64, 4, 16, max_seq_len=128, chunk_size=8, n_summary=3).double().eval()
+    m.cos, m.sin = m.cos.double(), m.sin.double()
+    with torch.no_grad():
+        m.pool.add_(0.1 * torch.randn_like(m.pool))
+        x = torch.randn(2, 45, 64, dtype=torch.float64)
+        ref = m(x)
+        state = m.init_state(2, dtype=torch.float64)
+        outs = []
+        for t in range(x.size(1)):
+            y, state = m.step(x[:, t], state)
+            outs.append(y)
+    # both paths take the softmax in fp32, so agreement is ~1e-8
+    assert torch.allclose(torch.stack(outs, 1), ref, atol=1e-6)
+    assert state["k_sum"].size(2) == 3 * (45 // 8 - 1)

@@ -124,6 +124,36 @@ class ChunkCompressedAttention(nn.Module):
         out = out.reshape(b, H, Lp, dk)[:, :, :L]
         return self.w_o(out.transpose(1, 2).reshape(b, L, H * dk))
 
+    def init_state(self, batch: int, device=None, dtype=torch.float32) -> dict:
+        e = torch.zeros(batch, self.n_heads, 0, self.d_k, device=device, dtype=dtype)
+        return {"pos": 0, "k_prev": e, "v_prev": e, "k_cur": e, "v_cur": e, "k_sum": e, "v_sum": e}
+
+    def step(self, x: torch.Tensor, state: dict):
+        """One-token decode. Cache = 2 raw chunks + n_summary vectors per older chunk."""
+        b = x.size(0)
+        H, dk, c = self.n_heads, self.d_k, self.c
+        t = state["pos"]
+        cos, sin = self.cos[t : t + 1], self.sin[t : t + 1]
+        q = _apply_rope(self.w_q(x).view(b, H, 1, dk), cos, sin)
+        k = _apply_rope(self.w_k(x).view(b, H, 1, dk), cos, sin)
+        v = self.w_v(x).view(b, H, 1, dk)
+        k_cur = torch.cat([state["k_cur"], k], dim=2)
+        v_cur = torch.cat([state["v_cur"], v], dim=2)
+        keys = torch.cat([state["k_sum"], state["k_prev"], k_cur], dim=2)
+        vals = torch.cat([state["v_sum"], state["v_prev"], v_cur], dim=2)
+        sc = torch.einsum("bhqd,bhkd->bhqk", q, keys).float() / math.sqrt(dk)
+        out = torch.einsum("bhqk,bhkd->bhqd", torch.softmax(sc, dim=-1).to(x.dtype), vals)
+        new = dict(state, pos=t + 1, k_cur=k_cur, v_cur=v_cur)
+        if (t + 1) % c == 0:
+            if state["k_prev"].size(2):
+                ks = torch.einsum("hmc,bhcd->bhmd", self.pool.to(x.dtype), state["k_prev"])
+                vs = torch.einsum("hmc,bhcd->bhmd", self.pool.to(x.dtype), state["v_prev"])
+                new["k_sum"] = torch.cat([state["k_sum"], ks], dim=2)
+                new["v_sum"] = torch.cat([state["v_sum"], vs], dim=2)
+            new["k_prev"], new["v_prev"] = k_cur, v_cur
+            new["k_cur"], new["v_cur"] = k_cur[:, :, :0], v_cur[:, :, :0]
+        return self.w_o(out.reshape(b, H * dk)), new
+
 
 # =====================================================================================
 # PolyMamba v2: selective SSM (Mamba-2 / SSD form), chunkwise-exact

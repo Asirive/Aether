@@ -1,49 +1,49 @@
 [
  {
   "spec": "P:pm2-pm2-swa-attn-pm2-pm2-swa-attn/none",
-  "seed": 0,
+  "seed": 1,
   "params": 6871916,
-  "val_bpb": 1.7198,
+  "val_bpb": 1.7129,
   "curve": [
    [
     200,
-    2.0992,
-    2.221,
-    0.624
+    2.0365,
+    2.2522,
+    0.567
    ],
    [
     400,
-    1.7192,
-    1.9475,
-    0.542
+    1.8366,
+    1.9539,
+    0.595
    ],
    [
     600,
-    1.5887,
-    1.7926,
-    0.45
+    1.6012,
+    1.7996,
+    0.484
    ],
    [
     800,
-    1.4882,
-    1.7198,
-    0.477
+    1.4977,
+    1.7129,
+    0.449
    ]
   ],
-  "max_grad_norm": 66.518,
+  "max_grad_norm": 68.98,
   "nonfinite_steps": 0,
   "leak": 0.0,
   "gn_after_warmup": {
-   "median": 0.503,
-   "p99": 1.227,
-   "max": 1.83,
+   "median": 0.518,
+   "p99": 1.184,
+   "max": 2.241,
    "n_over_5": 0,
    "n_over_20": 0,
-   "argmax_step": 7
+   "argmax_step": 11
   },
-  "causal_val_bpb": 1.7601,
-  "tok_per_s": 2524,
-  "wall_s": 1298.0,
+  "causal_val_bpb": 1.7749,
+  "tok_per_s": 2226,
+  "wall_s": 1472.0,
   "dims": {
    "d_model": 256,
    "d_inner": 768,
