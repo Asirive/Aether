@@ -166,7 +166,27 @@ Lab models (7M, 800 steps, seed 0), quantized after training, fp32 eval. Increas
 * Not covered: the SSM's internal recurrence (decay, state update) in int8/int16 rather than
   fp16; that needs the QNN toolchain on the board.
 
-## 9. What the CPU lab cannot answer
+## 9. Length generalization (results/17_longctx)
+
+Lab models (7M, 800 steps, seed 0) trained on 256-byte windows only, then scored on
+2048-byte held-out windows. bpb by position:
+
+| design | 0-256 (trained) | 256-512 | 512-1024 | 1024-2048 |
+|---|---|---|---|---|
+| transformer | 2.015 | 2.774 | 3.375 | 3.845 |
+| **v2** | **1.577** | **1.553** | **1.488** | **1.567** |
+| LFM3-style | 1.726 | 1.684 | 1.596 | 1.682 |
+
+* The transformer breaks immediately past its training length (bpb nearly doubles). v2
+  stays at or below its in-length bpb out to 8x the training length; so does LFM3-style.
+* Reason: only 1 layer in 4 uses RoPE attention; the conv/SSM layers carry position and
+  recent context without positional encodings, so unseen RoPE angles do less damage.
+* Caveat: transformers are usually fixed for this with RoPE scaling (YaRN, position
+  interpolation) or long-context fine-tuning, so this is a robustness advantage, not proof
+  that v2 uses long context better. The slight rise at 1024-2048 suggests v2's attention
+  layers also degrade somewhat; long-context fine-tuning is still advisable.
+
+## 10. What the CPU lab cannot answer
 * **Scale.** 15M parameters and 3200 steps at most. Effects can shrink or flip at 0.5-1B.
 * **Real speed.** The SSM scan is plain PyTorch; the NPU/GPU numbers need the target hardware.
 
