@@ -182,8 +182,11 @@ def ssd_scan(xh: torch.Tensor, a: torch.Tensor, B: torch.Tensor, C: torch.Tensor
 
 class SelectiveSSM(nn.Module):
     def __init__(self, d_model: int, d_inner: int, head_dim: int = 32, state_dim: int = 64,
-                 conv_k: int = 4, chunk: int = 64, dt_min: float = 1e-3, dt_max: float = 0.1) -> None:
+                 conv_k: int = 4, chunk: int = 64, dt_min: float = 1e-3, dt_max: float = 0.1,
+                 selective_dt: bool = True) -> None:
         super().__init__()
+        # selective_dt=False makes the step size a per-head constant (ablation only).
+        self.selective_dt = selective_dt
         assert d_inner % head_dim == 0
         self.d_inner, self.P, self.N, self.H = d_inner, head_dim, state_dim, d_inner // head_dim
         self.chunk, self.conv_k = chunk, conv_k
@@ -219,6 +222,8 @@ class SelectiveSSM(nn.Module):
         xBC = F.pad(xBC.transpose(1, 2), (self.conv_k - 1, 0))
         xBC = F.silu(self.conv(xBC)).transpose(1, 2)
         xs, Bm, Cm = torch.split(xBC, [di, N, N], dim=-1)
+        if not self.selective_dt:
+            dt = torch.zeros_like(dt)
         dt = F.softplus(dt.float() + self.dt_bias)                     # (b,L,H)
         a = -torch.exp(self.A_log.float()) * dt                        # log decay <= 0
         xh = xs.float().view(b, L, H, P)

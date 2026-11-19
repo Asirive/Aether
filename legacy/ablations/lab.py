@@ -111,6 +111,40 @@ def _pm2(d: Dims, layer: int):
     return SelectiveSSM(d.d_model, matched_ssm_inner(d.d_model))
 
 
+@register_mixer("pm2nc")
+def _pm2nc(d: Dims, layer: int):
+    """Ablation: selective SSM without the short causal conv (kernel 1 = per-channel affine)."""
+    return SelectiveSSM(d.d_model, matched_ssm_inner(d.d_model, conv_k=1), conv_k=1)
+
+
+@register_mixer("pm2fdt")
+def _pm2fdt(d: Dims, layer: int):
+    """Ablation: step size dt is a learned per-head constant (not input-dependent)."""
+    return SelectiveSSM(d.d_model, matched_ssm_inner(d.d_model), selective_dt=False)
+
+
+class GatedConvMixer(nn.Module):
+    """Gated depthwise causal conv (k=4) + projection, param-matched to attention. Baseline aid."""
+
+    def __init__(self, d_model: int, kernel: int = 4) -> None:
+        super().__init__()
+        inner = round(4 * d_model * d_model / (3 * d_model + kernel + 1))
+        self.in_proj = nn.Linear(d_model, 2 * inner, bias=False)
+        self.conv = nn.Conv1d(inner, inner, kernel, groups=inner, bias=True)
+        self.out_proj = nn.Linear(inner, d_model, bias=False)
+        self.k = kernel
+
+    def forward(self, x):
+        v, g = self.in_proj(x).chunk(2, dim=-1)
+        v = self.conv(F.pad(v.transpose(1, 2), (self.k - 1, 0))).transpose(1, 2)
+        return self.out_proj(F.silu(g) * v)
+
+
+@register_mixer("conv")
+def _conv(d: Dims, layer: int):
+    return GatedConvMixer(d.d_model)
+
+
 @register_router("mod2")
 def _mod2(d: Dims):
     pts = tuple(p for p in (2, 4, 6) if p < d.n_layers)
