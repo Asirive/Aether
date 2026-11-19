@@ -209,6 +209,7 @@ class SelectiveSSM(nn.Module):
         u = torch.cat([torch.rand(half) * 0.5 + 0.5, torch.rand(H - half) * 0.5])  # fast, slow
         dt = torch.exp(u * (hi - lo) + lo)
         with torch.no_grad():
+            self.in_proj.weight.normal_(0.0, 1.0 / math.sqrt(3 * self.in_proj.in_features))
             self.dt_bias.copy_(dt + torch.log(-torch.expm1(-dt)))   # softplus^-1(dt)
             self.A_log.copy_(torch.log(torch.empty(H).uniform_(1.0, 16.0)))
             self.D.fill_(1.0)

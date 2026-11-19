@@ -425,21 +425,26 @@ def causal_evaluate(model: LabLM, val: torch.Tensor, seq_len: int, n_windows: in
     This is how the model behaves when generating. For a strictly causal model it equals
     the full-sequence loss at the same positions; for a model whose forward pass leaks
     future information (e.g. sequence-level top-k routing) it removes the leak.
+    Returns (prefix-only loss, full-sequence loss at the same positions), so the two are
+    directly comparable; any gap between them is leak, not position-sampling noise.
     """
     model.eval()
     g = torch.Generator().manual_seed(seed)
     stride = (val.numel() - seq_len - 1) // n_windows
-    tot, n = 0.0, 0
+    tot, full, n = 0.0, 0.0, 0
     for i in range(n_windows):
         win = val[i * stride : i * stride + seq_len]
         pos = torch.randint(8, seq_len - 1, (per_window,), generator=g).tolist()
+        with AMP():
+            all_logits = model(win.unsqueeze(0))[0].float()
         for t in pos:
             with AMP():
                 logits = model(win[: t + 1].unsqueeze(0))[0, -1].float()
             tot += float(F.cross_entropy(logits.unsqueeze(0), win[t + 1].view(1)))
+            full += float(F.cross_entropy(all_logits[t].unsqueeze(0), win[t + 1].view(1)))
             n += 1
     model.train()
-    return tot / n / math.log(2)
+    return tot / n / math.log(2), full / n / math.log(2)
 
 
 @torch.no_grad()
@@ -523,7 +528,8 @@ def train(spec: Spec, rc: RunCfg, log=print) -> dict:
         "val_bpb": curve[-1][2], "curve": curve, "max_grad_norm": round(gmax, 3),
         "nonfinite_steps": nonfinite, "leak": causality_leak(model, d.seq_len),
         "gn_after_warmup": _gn_stats(gns[warm_steps:]),
-        "causal_val_bpb": round(causal_evaluate(model, va, d.seq_len), 4),
+        **dict(zip(("causal_val_bpb", "paired_full_bpb"),
+                   (round(v, 4) for v in causal_evaluate(model, va, d.seq_len)))),
         "tok_per_s": round(rc.steps * rc.bsz * d.seq_len / wall), "wall_s": round(wall, 1),
     }
 
