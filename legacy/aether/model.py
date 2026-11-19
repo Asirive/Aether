@@ -7,9 +7,19 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from aether.components.attention import CausalSelfAttention
 from aether.components.fsa import FreqSparseAttention
 from aether.components.mod_router import MoDRouter
 from aether.components.polymamba import PolyMamba2
+from aether.components.v2 import (
+    CausalDepthRouter,
+    ChunkCompressedAttention,
+    SelectiveSSM,
+    matched_ssm_inner,
+)
+
+# Mixer names usable in AetherConfig.layer_pattern (arch="aether_v2").
+V2_MIXERS = ("ssm", "fsa2", "attn")
 from aether.utils.numerics import to_fp32
 
 
@@ -45,7 +55,32 @@ class AetherConfig:
         mod_routing_points: tuple[int, ...] = (4, 8, 12),
         mod_keep_ratios: tuple[float, ...] = (0.50, 0.70, 1.00),
         mod_loss_weight: float = 0.01,
+        arch: str = "aether",
+        layer_pattern: tuple[str, ...] | None = None,
+        ssm_state_dim: int = 64,
+        ssm_head_dim: int = 32,
+        fsa2_chunk_size: int = 32,
+        fsa2_n_summary: int = 8,
     ) -> None:
+        if arch not in ("aether", "vanilla", "aether_v2"):
+            raise ValueError(f"arch must be 'aether', 'vanilla' or 'aether_v2', got {arch!r}")
+        if arch == "aether_v2":
+            if layer_pattern is None:
+                layer_pattern = tuple("ssm" if i % 2 == 0 else "fsa2" for i in range(n_layers))
+            layer_pattern = tuple(layer_pattern)
+            if len(layer_pattern) != n_layers or any(m not in V2_MIXERS for m in layer_pattern):
+                raise ValueError(f"layer_pattern must list {n_layers} of {V2_MIXERS}, got {layer_pattern}")
+        elif layer_pattern is not None:
+            raise ValueError("layer_pattern is only used with arch='aether_v2'")
+        self.layer_pattern = layer_pattern
+        self.ssm_state_dim = ssm_state_dim
+        self.ssm_head_dim = ssm_head_dim
+        self.fsa2_chunk_size = fsa2_chunk_size
+        self.fsa2_n_summary = fsa2_n_summary
+        if arch == "vanilla":
+            # The baseline has no depth routing; ignore any MoD settings.
+            mod_routing_points, mod_keep_ratios = (), ()
+        self.arch = arch
         self.vocab_size = vocab_size
         self.d_model = d_model
         self.d_inner = d_inner
@@ -78,8 +113,35 @@ class AetherBlock(nn.Module):
         self.norm1 = RMSNorm(config.d_model)
         self.norm2 = RMSNorm(config.d_model)
 
-        if layer_id % 2 == 0:
-            self.mixer: nn.Module = PolyMamba2(
+        kind = config.layer_pattern[layer_id] if config.arch == "aether_v2" else None
+        if kind == "ssm":
+            # Parameter-matched to one attention mixer (4 * d_model^2).
+            self.mixer: nn.Module = SelectiveSSM(
+                d_model=config.d_model,
+                d_inner=matched_ssm_inner(config.d_model, config.ssm_head_dim, config.ssm_state_dim),
+                head_dim=config.ssm_head_dim,
+                state_dim=config.ssm_state_dim,
+            )
+        elif kind == "fsa2":
+            self.mixer = ChunkCompressedAttention(
+                d_model=config.d_model,
+                n_heads=config.n_heads,
+                d_k=config.d_k,
+                max_seq_len=config.max_seq_len,
+                chunk_size=config.fsa2_chunk_size,
+                n_summary=config.fsa2_n_summary,
+                rope_base=config.rope_base,
+            )
+        elif config.arch == "vanilla" or kind == "attn":
+            self.mixer = CausalSelfAttention(
+                d_model=config.d_model,
+                n_heads=config.n_heads,
+                d_k=config.d_k,
+                max_seq_len=config.max_seq_len,
+                rope_base=config.rope_base,
+            )
+        elif layer_id % 2 == 0:
+            self.mixer = PolyMamba2(
                 d_model=config.d_model,
                 d_inner=config.d_inner,
                 n_orders=config.polymamba_orders,
@@ -100,6 +162,9 @@ class AetherBlock(nn.Module):
         mix = self.mixer(self.norm1(x))
         if isinstance(self.mixer, PolyMamba2):
             kbal = self.mixer.balance_loss()
+            ortho = torch.zeros((), device=x.device, dtype=x.dtype)
+        elif isinstance(self.mixer, (CausalSelfAttention, SelectiveSSM, ChunkCompressedAttention)):
+            kbal = torch.zeros((), device=x.device, dtype=x.dtype)
             ortho = torch.zeros((), device=x.device, dtype=x.dtype)
         else:
             kbal = torch.zeros((), device=x.device, dtype=x.dtype)
@@ -129,11 +194,22 @@ class AetherForCausalLM(nn.Module):
             [AetherBlock(i, config) for i in range(config.n_layers)]
         )
         self.norm = RMSNorm(config.d_model)
-        self.mod_router = MoDRouter(
-            d_model=config.d_model,
-            routing_points=config.mod_routing_points,
-            keep_ratios=config.mod_keep_ratios,
-        )
+        # The vanilla baseline has no router at all, so it carries no unused parameters.
+        self.mod_router: MoDRouter | CausalDepthRouter | None = None
+        if config.mod_routing_points and config.arch == "aether_v2":
+            # Causal per-token router (the v1 router's sequence-level top-k leaks the future).
+            self.mod_router = CausalDepthRouter(
+                d_model=config.d_model,
+                routing_points=config.mod_routing_points,
+                keep_ratios=config.mod_keep_ratios,
+                capacity_weight=1.0,  # weighted by mod_loss_weight like the v1 router loss
+            )
+        elif config.mod_routing_points:
+            self.mod_router = MoDRouter(
+                d_model=config.d_model,
+                routing_points=config.mod_routing_points,
+                keep_ratios=config.mod_keep_ratios,
+            )
 
         if not config.tie_embeddings:
             self.lm_head = nn.Linear(config.d_model, config.vocab_size, bias=False)
@@ -157,6 +233,8 @@ class AetherForCausalLM(nn.Module):
                     nn.init.normal_(module.weight, mean=0.0, std=init_std)
                 elif isinstance(module, RMSNorm):
                     nn.init.ones_(module.weight)
+            if hasattr(block.mixer, "post_init"):
+                block.mixer.post_init()
 
     def forward(
         self,
@@ -173,7 +251,11 @@ class AetherForCausalLM(nn.Module):
         routing_points = set(self.config.mod_routing_points)
 
         for i, block in enumerate(self.blocks):
-            if i in routing_points:
+            if i in routing_points and isinstance(self.mod_router, CausalDepthRouter):
+                gate, cap = self.mod_router.gate(x, self.mod_router.points.index(i))
+                mod_loss = mod_loss + cap.to(mod_loss.dtype)
+                router_state[f"_last_ratio_{i}"] = float((gate > 0.5).float().mean().detach())
+            elif i in routing_points and self.mod_router is not None:
                 _, route_loss, router_state, gate = self.mod_router(x, layer_id=i, state=router_state)
                 mod_loss = mod_loss + route_loss.to(mod_loss.dtype)
             if gate is not None:
@@ -297,7 +379,7 @@ class AetherForCausalLM(nn.Module):
                     block.mixer._temperature = fsa_temperature
                 if fsa_gumbel is not None:
                     block.mixer._gumbel_noise = fsa_gumbel
-        if mod_temperature is not None:
+        if mod_temperature is not None and self.mod_router is not None:
             self.mod_router._temperature = mod_temperature
 
     def num_parameters(self, exclude_embeddings: bool = False) -> int:

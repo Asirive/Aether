@@ -128,6 +128,12 @@ def _build_model(cfg: PretrainConfig) -> AetherForCausalLM:
         mod_routing_points=tuple(cfg.mod["routing_points"]),
         mod_keep_ratios=tuple(cfg.mod["keep_ratios"]),
         mod_loss_weight=cfg.mod.get("loss_weight", 0.01),
+        arch=m.get("arch", "aether"),
+        layer_pattern=tuple(m["layer_pattern"]) if m.get("layer_pattern") else None,
+        ssm_state_dim=m.get("ssm_state_dim", 64),
+        ssm_head_dim=m.get("ssm_head_dim", 32),
+        fsa2_chunk_size=m.get("fsa2_chunk_size", 32),
+        fsa2_n_summary=m.get("fsa2_n_summary", 8),
     )
     model = AetherForCausalLM(aether_cfg)
     return model
