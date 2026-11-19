@@ -151,7 +151,22 @@ Runtime on 1 x86 core with other jobs running, so only the ratio matters.
 * Not tested here: INT8 accuracy on trained weights and the QNN backend itself (needs the
   Q8B and Qualcomm's SDK).
 
-## 8. What the CPU lab cannot answer
+## 8. Quantization sensitivity (results/16_quant)
+
+Lab models (7M, 800 steps, seed 0), quantized after training, fp32 eval. Increase in bpb:
+
+| design | fp16 (incl. SSM state) | int8 weights | int4 weights, group 32 | int8 weights + int8 activations |
+|---|---|---|---|---|
+| transformer (2.056) | +0.000 | +0.000 | +0.004 | +0.006 |
+| **v2 (1.686)** | +0.000 | +0.000 | +0.005 | +0.006 |
+| LFM3-style (1.817) | +0.000 | +0.000 | +0.010 | +0.005 |
+
+* v2 is as robust to quantization as the transformer. Its quality lead survives every
+  format, including the NPU setting (static per-tensor int8 activations) and 4-bit weights.
+* Not covered: the SSM's internal recurrence (decay, state update) in int8/int16 rather than
+  fp16; that needs the QNN toolchain on the board.
+
+## 9. What the CPU lab cannot answer
 * **Scale.** 15M parameters and 3200 steps at most. Effects can shrink or flip at 0.5-1B.
 * **Real speed.** The SSM scan is plain PyTorch; the NPU/GPU numbers need the target hardware.
 

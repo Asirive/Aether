@@ -1,0 +1,29 @@
+[
+  {
+    "spec": "attn/attn/none",
+    "seed": 0,
+    "fp32": 2.0557,
+    "fp16": 2.0558,
+    "w8": 2.0557,
+    "w4g32": 2.0598,
+    "w8a8": 2.0613
+  },
+  {
+    "spec": "P:conv-pm2-conv-attn-conv-pm2-conv-attn/none",
+    "seed": 0,
+    "fp32": 1.6857,
+    "fp16": 1.6857,
+    "w8": 1.6856,
+    "w4g32": 1.6904,
+    "w8a8": 1.6919
+  },
+  {
+    "spec": "P:conv-conv-swa-attn-conv-conv-swa-attn/none",
+    "seed": 0,
+    "fp32": 1.8173,
+    "fp16": 1.8173,
+    "w8": 1.8174,
+    "w4g32": 1.827,
+    "w8a8": 1.8222
+  }
+]
