@@ -1,0 +1,62 @@
+[
+ {
+  "spec": "P:conv-conv-swa-attn-conv-conv-swa-attn/none",
+  "seed": 0,
+  "params": 6885500,
+  "val_bpb": 1.8173,
+  "curve": [
+   [
+    200,
+    2.3353,
+    2.4143,
+    0.549
+   ],
+   [
+    400,
+    1.8472,
+    2.0735,
+    0.471
+   ],
+   [
+    600,
+    1.7029,
+    1.8952,
+    0.419
+   ],
+   [
+    800,
+    1.5892,
+    1.8173,
+    0.436
+   ]
+  ],
+  "max_grad_norm": 5.486,
+  "nonfinite_steps": 0,
+  "leak": 0.0,
+  "gn_after_warmup": {
+   "median": 0.478,
+   "p99": 0.871,
+   "max": 1.413,
+   "n_over_5": 0,
+   "n_over_20": 0,
+   "argmax_step": 7
+  },
+  "causal_val_bpb": 1.8795,
+  "tok_per_s": 3611,
+  "wall_s": 907.3,
+  "dims": {
+   "d_model": 256,
+   "d_inner": 768,
+   "n_layers": 8,
+   "n_heads": 4,
+   "d_k": 64,
+   "seq_len": 256
+  },
+  "run": {
+   "steps": 800,
+   "bsz": 16,
+   "lr": 0.002,
+   "amp_bf16": true
+  }
+ }
+]
