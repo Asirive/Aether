@@ -47,3 +47,6 @@ _stab_watcher.ps1
 debug_fails.ps1
 *.egg-info/
 .commandcode/
+legacy/ablations/results/jobs.txt
+legacy/ablations/results/jobs.txt.lock
+legacy/ablations/results/jobq.log
