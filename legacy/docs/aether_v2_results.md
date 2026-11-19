@@ -103,30 +103,32 @@ reproduce a span of 128 random tokens after seeing it once (1000 steps; results/
 * The LFM3-style stack also has one full-attention layer but did not learn the task in 1000
   steps (3.6% and 15.7% over two seeds).
 
-## 6. Scale-up check (2.2x parameters, 4x steps)
+## 6. Scale-up check (2.2x parameters, 4x steps), 3 seeds
 
 d_model 384, SwiGLU 1152, 8 layers (~15.4M params), 3200 steps (results/13_scale).
+bpb on all positions of 96 held-out windows (~24k predictions per number):
 
-| 8-layer design | bpb all positions (s0 / s1 / mean) | strict prefix-only (s0 / s1 / mean) | copy gain (s0 / s1) |
-|---|---|---|---|
-| transformer | 1.601 / 1.365 / 1.483 | 1.627 / 1.453 / 1.540 | -0.20 / +0.48 |
-| LFM3-style | 1.477 / 1.445 / 1.461 | 1.599 / 1.507 / 1.553 | -0.12 / -0.05 |
-| **conv, SSM, conv, attn (v2)** | 1.305 / 1.333 / **1.319** | 1.505 / 1.442 / **1.474** | +0.19 / +0.05 |
+| 8-layer design | seed 0 | seed 1 | seed 2 | mean | copy gain (s0/s1/s2) |
+|---|---|---|---|---|---|
+| transformer | 1.601 | 1.365 | 1.430 | 1.466 | -0.20 / +0.48 / +0.22 |
+| LFM3-style | 1.477 | 1.445 | 1.430 | 1.451 | -0.12 / -0.05 / -0.01 |
+| **conv, SSM, conv, attn (v2)** | **1.305** | **1.333** | **1.339** | **1.325** | +0.19 / +0.05 / +0.16 |
 
-**Honest reading: at this scale v2's lead over the transformer is not established.**
-
-* Seed variance is far larger here than at 7M. The transformer's seed-1 curve drops
-  abruptly at step ~1600 (1.71 to 1.46 bpb) and its copy gain jumps to +0.48: it formed
-  induction heads (in-context copying), which are worth a lot on repetitive source code.
-  Its seed-0 run had not done this by step 3200 and finished 0.24 bpb worse.
-* v2 learned copying early on both seeds (no abrupt jump; seed spread 0.03 vs 0.24) and
-  is the most consistent design. On the mean it still leads (-0.16 all positions, -0.07
-  strict), but on seed 1 alone it ties the transformer (-0.03 / -0.01).
-* So the robust claims are: v2 trains faster and more reliably, and beats LFM3-style on
-  both seeds. Whether it ends better than a transformer that has found its induction heads
-  needs more seeds and longer runs (queued: seed 2, and 6400-step runs) and, above all,
-  the 0.54B rehearsal.
-* Max gradient norm: transformer 83 / 16, v2 17 / 18, LFM3 13 / 14.
+* v2 beats the transformer on all three seeds, by 0.30, 0.03 and 0.09 bpb (mean -0.14,
+  -9.6%), and beats LFM3-style on all three (mean -0.13).
+* The margin over the transformer depends on when the transformer forms induction heads
+  (in-context copying): a sudden drop in its curve, at step ~1600 on seed 1, ~2400 on seed 2,
+  not by 3200 on seed 0. v2 learns copying smoothly and early; its three seeds lie within
+  0.034 bpb, the transformer's within 0.24. With 3 paired seeds the direction is consistent
+  but the size of the gap is uncertain (paired t ~ 1.7).
+* The strict prefix-only metric (1.505/1.442/1.448 for v2 vs 1.627/1.453/1.449) samples only
+  576 positions per run, so it is too noisy to rank these runs; it exists to detect leaks,
+  and the leak is exactly 0 for every model here.
+* Reading: v2 reaches a given quality sooner and more reliably; whether a transformer
+  catches up with much longer training is what the 6400-step runs (queued) and the 0.54B
+  rehearsal test. At 0.54B and 1e8+ tokens both will have induction heads early, so the
+  rehearsal compares them after that transition.
+* Max gradient norm: transformer 83 / 16 / 20, v2 17 / 18 / 19, LFM3 13 / 14 / 13.
 
 ## 7. Deployment check at the real size (0.54B, static-shape ONNX)
 
