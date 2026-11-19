@@ -91,7 +91,7 @@ reproduce a span of 128 random tokens after seeing it once (1000 steps; results/
 | attention x4 | 100% |
 | **conv, SSM, conv, attention (v2)** | **100% / 100% (seed 0 / 1)** |
 | LFM3-style: conv, conv, SWA, attention | 3.6% / 15.7% (seed 0 / 1) |
-| conv, SSM, conv, compressed attention | 3.4% |
+| conv, SSM, conv, compressed attention | 3.4% / 1.7% (seed 0 / 1) |
 | SSM, SSM, SSM, compressed attention | 0.8% |
 | SSM x4 | 0.4% |
 | conv x4 (control) | 0.4% |
@@ -123,7 +123,30 @@ seed 1 queued).
   first time). The transformer and LFM3 had not learned this yet at the same step.
 * Max gradient norm: transformer 83, v2 17, LFM3 13.
 
-## 7. What the CPU lab cannot answer
+## 7. Deployment check at the real size (0.54B, static-shape ONNX)
+
+`scripts/export_onnx.py` exports one decode step with every shape fixed, as the Snapdragon
+NPU runtime (QNN through ONNX Runtime) requires: conv/SSM layers carry their constant-size
+state, attention layers a 2048-slot KV buffer written by mask. Untrained weights, ONNX
+Runtime on 1 x86 core with other jobs running, so only the ratio matters.
+
+| 0.54B student | ONNX matches PyTorch | dynamic dims | decode state (fp32, 2k ctx) | ms per token |
+|---|---|---|---|---|
+| vanilla transformer (28 attn) | 1e-5 | 0 | 470 MB | 729 |
+| **v2 (14 conv, 7 SSM, 7 attn)** | 5e-6 | 0 | **120 MB** | **254** |
+
+* Both export cleanly with only standard ops (MatMul, Mul/Add, Softmax, Where, Sigmoid,
+  Exp, Softplus, ReduceMean/Sum); no Einsum, loops or dynamic shapes.
+* The 2.9x latency gap here is mostly the cost of moving the KV state in and out each step;
+  on compute alone (per-token multiply-adds) v2 saves 13% at 2k context, 35% at 8k and 58%
+  at 32k, because only 7 of 28 layers read a KV cache.
+* KV memory per token of context: 229 KB (transformer) vs 57 KB (v2), fp32. At 32k context
+  that is 7.5 GB vs 1.9 GB (halve both for fp16), which decides what fits next to the
+  vision and audio models on a 16-32 GB board.
+* Not tested here: INT8 accuracy on trained weights and the QNN backend itself (needs the
+  Q8B and Qualcomm's SDK).
+
+## 8. What the CPU lab cannot answer
 * **Scale.** 15M parameters and 3200 steps at most. Effects can shrink or flip at 0.5-1B.
 * **Real speed.** The SSM scan is plain PyTorch; the NPU/GPU numbers need the target hardware.
 

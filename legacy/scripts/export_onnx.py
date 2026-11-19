@@ -205,6 +205,7 @@ def main(argv=None) -> dict:
     worst, lat = run(onnx_path)
     res["ort_vs_torch_max_abs"] = worst
     res["ort_ms_per_token"] = 1000 * sum(lat) / len(lat)
+    (args.out / "report.json").write_text(json.dumps(res, indent=2))
     if args.int8:
         from onnxruntime.quantization import QuantType, quantize_dynamic
         q_path = args.out / "step_int8.onnx"
