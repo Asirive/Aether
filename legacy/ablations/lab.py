@@ -140,6 +140,34 @@ class GatedConvMixer(nn.Module):
         return self.out_proj(F.silu(g) * v)
 
 
+class SlidingWindowAttention(CausalSelfAttention):
+    """Causal attention restricted to the last `window` positions (RoPE), as in LFM3's SWA layers."""
+
+    def __init__(self, d_model, n_heads, d_k, max_seq_len, window):
+        super().__init__(d_model, n_heads, d_k, max_seq_len=max_seq_len)
+        i = torch.arange(max_seq_len)
+        mask = (i.view(-1, 1) >= i.view(1, -1)) & (i.view(-1, 1) - i.view(1, -1) < window)
+        self.register_buffer("win_mask", mask, persistent=False)
+
+    def forward(self, x):
+        b, L, _ = x.shape
+
+        def heads(t):
+            return t.view(b, L, self.n_heads, self.d_k).transpose(1, 2)
+
+        q = self._rope(heads(self.w_q(x)))
+        k = self._rope(heads(self.w_k(x)))
+        v = heads(self.w_v(x))
+        out = F.scaled_dot_product_attention(q, k, v, attn_mask=self.win_mask[:L, :L])
+        return self.w_o(out.transpose(1, 2).reshape(b, L, self.n_heads * self.d_k))
+
+
+@register_mixer("swa")
+def _swa(d: Dims, layer: int):
+    # LFM3 runs SWA well below its 32K context; at our 256-token context use a 64-token window.
+    return SlidingWindowAttention(d.d_model, d.n_heads, d.d_k, d.seq_len, window=64)
+
+
 @register_mixer("conv")
 def _conv(d: Dims, layer: int):
     return GatedConvMixer(d.d_model)
