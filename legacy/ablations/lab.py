@@ -462,6 +462,29 @@ def causality_leak(model: LabLM, seq_len: int, seed: int = 0) -> float:
     return float((a - b).abs().max())
 
 
+@torch.no_grad()
+def copy_probe(model: LabLM, span: int = 64, reps: int = 2, n: int = 32, seed: int = 7) -> dict:
+    """In-context retrieval: random bytes repeated. Loss (bits/token) on each later repeat.
+
+    The first copy is unpredictable (8 bits/token). A model that can look up what followed the
+    same token earlier in its context drives later copies toward 0; a model that cannot, stays
+    near 8. Needs no task-specific training, so it runs on every LM checkpoint.
+    """
+    model.eval()
+    g = torch.Generator().manual_seed(seed)
+    base = torch.randint(0, 256, (n, span), generator=g)
+    ids = base.repeat(1, reps + 1)
+    with AMP():
+        logits = model(ids).float()
+    lp = F.cross_entropy(logits[:, :-1].reshape(-1, logits.size(-1)), ids[:, 1:].reshape(-1),
+                         reduction="none").view(n, -1) / math.log(2)
+    model.train()
+    out = {}
+    for r in range(1, reps + 1):
+        out[f"copy{r}_bits"] = round(float(lp[:, r * span : (r + 1) * span - 1].mean()), 4)
+    return out
+
+
 # ---------------------------------------------------------------------------------------
 # Training
 # ---------------------------------------------------------------------------------------
@@ -528,6 +551,7 @@ def train(spec: Spec, rc: RunCfg, log=print) -> dict:
         "val_bpb": curve[-1][2], "curve": curve, "max_grad_norm": round(gmax, 3),
         "nonfinite_steps": nonfinite, "leak": causality_leak(model, d.seq_len),
         "gn_after_warmup": _gn_stats(gns[warm_steps:]),
+        **copy_probe(model),
         **dict(zip(("causal_val_bpb", "paired_full_bpb"),
                    (round(v, 4) for v in causal_evaluate(model, va, d.seq_len)))),
         "tok_per_s": round(rc.steps * rc.bsz * d.seq_len / wall), "wall_s": round(wall, 1),
@@ -568,7 +592,7 @@ def main() -> None:
             r["dims"] = asdict(dims)
             r["run"] = {"steps": args.steps, "bsz": args.bsz, "lr": args.lr, "amp_bf16": USE_AMP}
             print(f"RESULT {r['spec']} seed={seed} val_bpb={r['val_bpb']} params={r['params']:,} "
-                  f"causal_bpb={r['causal_val_bpb']} leak={r['leak']:.2e} tok/s={r['tok_per_s']} gmax={r['max_grad_norm']}", flush=True)
+                  f"causal_bpb={r['causal_val_bpb']} leak={r['leak']:.2e} tok/s={r['tok_per_s']} gmax={r['max_grad_norm']} copy2={r['copy2_bits']}", flush=True)
             results.append(r)
             out.write_text(json.dumps(results, indent=1))
 
