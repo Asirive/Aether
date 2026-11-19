@@ -285,8 +285,8 @@ class SelectiveSSM(nn.Module):
         dt = F.softplus(dt.to(ft) + self.dt_bias)
         decay = torch.exp(-torch.exp(self.A_log.to(ft)) * dt)
         xh = xs.to(ft).view(b, H, P)
-        h = h * decay.view(b, H, 1, 1) + torch.einsum("bs,bhp->bhsp", Bm.to(ft), xh * dt.unsqueeze(-1))
-        y = torch.einsum("bs,bhsp->bhp", Cm.to(ft), h) + xh * self.D.view(1, H, 1)
+        h = h * decay.view(b, H, 1, 1) + Bm.to(ft).view(b, 1, N, 1) * (xh * dt.unsqueeze(-1)).unsqueeze(2)
+        y = (Cm.to(ft).view(b, 1, N, 1) * h).sum(2) + xh * self.D.view(1, H, 1)
         y = F.rms_norm(y.reshape(b, di) * F.silu(z.to(ft)), (di,), self.norm_w.to(ft), 1e-6)
         return self.out_proj(y.to(x.dtype)), (window[..., 1:], h)
 
