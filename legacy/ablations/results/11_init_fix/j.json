@@ -189,5 +189,265 @@
    "lr": 0.002,
    "amp_bf16": true
   }
+ },
+ {
+  "spec": "P:conv-pm2-conv-fsa2-conv-pm2-conv-fsa2/none",
+  "seed": 1,
+  "params": 6880562,
+  "val_bpb": 1.6785,
+  "curve": [
+   [
+    200,
+    1.9603,
+    2.1675,
+    0.573
+   ],
+   [
+    400,
+    1.7753,
+    1.9146,
+    0.52
+   ],
+   [
+    600,
+    1.5475,
+    1.7495,
+    0.478
+   ],
+   [
+    800,
+    1.4485,
+    1.6785,
+    0.404
+   ]
+  ],
+  "max_grad_norm": 16.034,
+  "nonfinite_steps": 0,
+  "leak": 0.0,
+  "gn_after_warmup": {
+   "median": 0.483,
+   "p99": 1.136,
+   "max": 1.94,
+   "n_over_5": 0,
+   "n_over_20": 0,
+   "argmax_step": 69
+  },
+  "copy0_bits": 1.6091,
+  "copy1_bits": 1.7812,
+  "copy2_bits": 1.7805,
+  "copy_gain": -0.1714,
+  "causal_val_bpb": 1.7931,
+  "paired_full_bpb": 1.7932,
+  "tok_per_s": 2663,
+  "wall_s": 1230.4,
+  "dims": {
+   "d_model": 256,
+   "d_inner": 768,
+   "n_layers": 8,
+   "n_heads": 4,
+   "d_k": 64,
+   "seq_len": 256
+  },
+  "run": {
+   "steps": 800,
+   "bsz": 16,
+   "lr": 0.002,
+   "amp_bf16": true
+  }
+ },
+ {
+  "spec": "P:pm2-pm2-pm2-attn-pm2-pm2-pm2-attn/none",
+  "seed": 1,
+  "params": 6864930,
+  "val_bpb": 1.6626,
+  "curve": [
+   [
+    200,
+    1.9182,
+    2.1448,
+    0.668
+   ],
+   [
+    400,
+    1.7413,
+    1.893,
+    0.532
+   ],
+   [
+    600,
+    1.5308,
+    1.7377,
+    0.517
+   ],
+   [
+    800,
+    1.4327,
+    1.6626,
+    0.431
+   ]
+  ],
+  "max_grad_norm": 22.548,
+  "nonfinite_steps": 0,
+  "leak": 0.0,
+  "gn_after_warmup": {
+   "median": 0.507,
+   "p99": 1.319,
+   "max": 1.643,
+   "n_over_5": 0,
+   "n_over_20": 0,
+   "argmax_step": 11
+  },
+  "copy0_bits": 1.6081,
+  "copy1_bits": 1.7667,
+  "copy2_bits": 1.7668,
+  "copy_gain": -0.1587,
+  "causal_val_bpb": 1.7568,
+  "paired_full_bpb": 1.7566,
+  "tok_per_s": 2163,
+  "wall_s": 1514.9,
+  "dims": {
+   "d_model": 256,
+   "d_inner": 768,
+   "n_layers": 8,
+   "n_heads": 4,
+   "d_k": 64,
+   "seq_len": 256
+  },
+  "run": {
+   "steps": 800,
+   "bsz": 16,
+   "lr": 0.002,
+   "amp_bf16": true
+  }
+ },
+ {
+  "spec": "P:conv-pm2-conv-attn-conv-pm2-conv-attn/none",
+  "seed": 0,
+  "params": 6878514,
+  "val_bpb": 1.6857,
+  "curve": [
+   [
+    200,
+    2.0381,
+    2.1808,
+    0.586
+   ],
+   [
+    400,
+    1.6651,
+    1.925,
+    0.504
+   ],
+   [
+    600,
+    1.5372,
+    1.7658,
+    0.438
+   ],
+   [
+    800,
+    1.4478,
+    1.6857,
+    0.461
+   ]
+  ],
+  "max_grad_norm": 13.659,
+  "nonfinite_steps": 0,
+  "leak": 0.0,
+  "gn_after_warmup": {
+   "median": 0.482,
+   "p99": 1.154,
+   "max": 1.644,
+   "n_over_5": 0,
+   "n_over_20": 0,
+   "argmax_step": 102
+  },
+  "copy0_bits": 1.6069,
+  "copy1_bits": 1.757,
+  "copy2_bits": 1.7571,
+  "copy_gain": -0.1502,
+  "causal_val_bpb": 1.7227,
+  "paired_full_bpb": 1.7231,
+  "tok_per_s": 3035,
+  "wall_s": 1079.8,
+  "dims": {
+   "d_model": 256,
+   "d_inner": 768,
+   "n_layers": 8,
+   "n_heads": 4,
+   "d_k": 64,
+   "seq_len": 256
+  },
+  "run": {
+   "steps": 800,
+   "bsz": 16,
+   "lr": 0.002,
+   "amp_bf16": true
+  }
+ },
+ {
+  "spec": "P:conv-pm2-conv-attn-conv-pm2-conv-attn/none",
+  "seed": 1,
+  "params": 6878514,
+  "val_bpb": 1.6681,
+  "curve": [
+   [
+    200,
+    1.9543,
+    2.18,
+    0.579
+   ],
+   [
+    400,
+    1.7701,
+    1.904,
+    0.513
+   ],
+   [
+    600,
+    1.5475,
+    1.7502,
+    0.463
+   ],
+   [
+    800,
+    1.4424,
+    1.6681,
+    0.395
+   ]
+  ],
+  "max_grad_norm": 16.036,
+  "nonfinite_steps": 0,
+  "leak": 0.0,
+  "gn_after_warmup": {
+   "median": 0.491,
+   "p99": 1.125,
+   "max": 2.945,
+   "n_over_5": 0,
+   "n_over_20": 0,
+   "argmax_step": 112
+  },
+  "copy0_bits": 1.6422,
+  "copy1_bits": 1.788,
+  "copy2_bits": 1.7846,
+  "copy_gain": -0.1424,
+  "causal_val_bpb": 1.742,
+  "paired_full_bpb": 1.7424,
+  "tok_per_s": 3063,
+  "wall_s": 1069.9,
+  "dims": {
+   "d_model": 256,
+   "d_inner": 768,
+   "n_layers": 8,
+   "n_heads": 4,
+   "d_k": 64,
+   "seq_len": 256
+  },
+  "run": {
+   "steps": 800,
+   "bsz": 16,
+   "lr": 0.002,
+   "amp_bf16": true
+  }
  }
 ]

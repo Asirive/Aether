@@ -1,12 +1,12 @@
 # GPU rehearsal: distil Qwen3-0.6B into Aether v2 vs a vanilla transformer
 
 Goal: at 0.54B parameters and real data, does the Aether v2 student (conv / SSM / conv /
-compressed attention) beat a parameter-matched vanilla attention student distilled from
+attention, see docs/aether_v2_results.md) beat a parameter-matched vanilla attention student distilled from
 the same teacher on the same tokens? And does it keep in-context retrieval (copy probe)?
 
 | student | params | layers |
 |---|---|---|
-| `aether_v2` (pattern `hybrid`) | 538.0M | 28 = 7 x (conv, ssm, conv, fsa2) |
+| `aether_v2` (pattern `hybrid_attn`) | ~538M | 28 = 7 x (conv, ssm, conv, attn) |
 | `vanilla` | 537.3M | 28 x attention |
 
 Both: d_model 1024, SwiGLU 3072, the teacher's 151,936-token vocabulary, tied embeddings.

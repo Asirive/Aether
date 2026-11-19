@@ -1,9 +1,9 @@
 # Aether v2 for the 200M comparison against configs/baseline_200m.yaml.
 #
 # Identical recipe to the baseline except the model section:
-#   model.arch: aether_v2      -> SelectiveSSM (Mamba-2 style) + chunk-compressed attention
-#   model.layer_pattern        -> 3 SSM : 1 compressed attention (best layout in the CPU lab,
-#                                 ablations/results/08_patterns and 11_init_fix)
+#   model.arch: aether_v2      -> gated short conv + SelectiveSSM (Mamba-2 style) + attention
+#   model.layer_pattern        -> conv, SSM, conv, attention (equal-best and fastest layout in
+#                                 the CPU lab; docs/aether_v2_results.md)
 #   no depth router            -> the causal router gave no gain in the lab and is NPU-hostile
 #   output.dir                 -> runs/aether_v2_200m
 
@@ -18,7 +18,7 @@ model:
   rope_base: 10000.0
   tie_embeddings: true
   arch: aether_v2
-  layer_pattern: [ssm, ssm, ssm, fsa2, ssm, ssm, ssm, fsa2, ssm, ssm, ssm, fsa2, ssm, ssm, ssm, fsa2, ssm, ssm, ssm, fsa2, ssm, ssm, ssm, fsa2]
+  layer_pattern: [conv, ssm, conv, attn, conv, ssm, conv, attn, conv, ssm, conv, attn, conv, ssm, conv, attn, conv, ssm, conv, attn, conv, ssm, conv, attn]
   ssm_state_dim: 64
   ssm_head_dim: 64
   fsa2_chunk_size: 64

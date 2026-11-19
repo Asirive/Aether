@@ -230,7 +230,7 @@ def lr_at(step: int, total: int, warmup: int, peak: float) -> float:
 def main(argv=None) -> dict:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--student", choices=["aether_v2", "vanilla"], required=True)
-    ap.add_argument("--pattern", choices=sorted(PATTERNS), default="hybrid")
+    ap.add_argument("--pattern", choices=sorted(PATTERNS), default="hybrid_attn")
     ap.add_argument("--teacher", default="Qwen/Qwen3-0.6B")
     ap.add_argument("--dataset", default="HuggingFaceFW/fineweb-edu")
     ap.add_argument("--dataset-config", default="sample-10BT")
