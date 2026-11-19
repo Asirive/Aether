@@ -1,49 +1,49 @@
 [
  {
-  "spec": "P:conv-conv-swa-attn-conv-conv-swa-attn/none",
+  "spec": "P:pm2-pm2-swa-attn-pm2-pm2-swa-attn/none",
   "seed": 0,
-  "params": 6885500,
-  "val_bpb": 1.8173,
+  "params": 6871916,
+  "val_bpb": 1.7198,
   "curve": [
    [
     200,
-    2.3353,
-    2.4143,
-    0.549
+    2.0992,
+    2.221,
+    0.624
    ],
    [
     400,
-    1.8472,
-    2.0735,
-    0.471
+    1.7192,
+    1.9475,
+    0.542
    ],
    [
     600,
-    1.7029,
-    1.8952,
-    0.419
+    1.5887,
+    1.7926,
+    0.45
    ],
    [
     800,
-    1.5892,
-    1.8173,
-    0.436
+    1.4882,
+    1.7198,
+    0.477
    ]
   ],
-  "max_grad_norm": 5.486,
+  "max_grad_norm": 66.518,
   "nonfinite_steps": 0,
   "leak": 0.0,
   "gn_after_warmup": {
-   "median": 0.478,
-   "p99": 0.871,
-   "max": 1.413,
+   "median": 0.503,
+   "p99": 1.227,
+   "max": 1.83,
    "n_over_5": 0,
    "n_over_20": 0,
    "argmax_step": 7
   },
-  "causal_val_bpb": 1.8795,
-  "tok_per_s": 3611,
-  "wall_s": 907.3,
+  "causal_val_bpb": 1.7601,
+  "tok_per_s": 2524,
+  "wall_s": 1298.0,
   "dims": {
    "d_model": 256,
    "d_inner": 768,
