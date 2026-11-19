@@ -50,5 +50,57 @@
    "lr": 0.002,
    "amp_bf16": true
   }
+ },
+ {
+  "spec": "attn/attn/none",
+  "seed": 1,
+  "params": 6885888,
+  "val_bpb": 2.0197,
+  "curve": [
+   [
+    200,
+    2.8275,
+    2.8931,
+    0.609
+   ],
+   [
+    400,
+    2.2948,
+    2.3975,
+    0.6
+   ],
+   [
+    600,
+    1.9552,
+    2.1458,
+    0.538
+   ],
+   [
+    800,
+    1.8068,
+    2.0197,
+    0.533
+   ]
+  ],
+  "max_grad_norm": 8.625,
+  "nonfinite_steps": 0,
+  "leak": 0.0,
+  "causal_val_bpb": 2.1408,
+  "tok_per_s": 3248,
+  "wall_s": 1008.9,
+  "dims": {
+   "d_model": 256,
+   "d_inner": 768,
+   "n_layers": 8,
+   "n_heads": 4,
+   "d_k": 64,
+   "seq_len": 256
+  },
+  "run": {
+   "steps": 800,
+   "bsz": 16,
+   "lr": 0.002,
+   "amp_bf16": true
+  }
  }
 ]

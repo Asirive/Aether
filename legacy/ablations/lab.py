@@ -409,6 +409,15 @@ class RunCfg:
     dims: Dims = field(default_factory=Dims)
 
 
+def _gn_stats(g: list[float]) -> dict:
+    if not g:
+        return {}
+    s = sorted(g)
+    return {"median": round(s[len(s) // 2], 3), "p99": round(s[int(0.99 * (len(s) - 1))], 3),
+            "max": round(s[-1], 3), "n_over_5": sum(x > 5 for x in g), "n_over_20": sum(x > 20 for x in g),
+            "argmax_step": int(g.index(max(g)))}
+
+
 def train(spec: Spec, rc: RunCfg, log=print) -> dict:
     torch.manual_seed(rc.seed)
     random.seed(rc.seed)
@@ -420,6 +429,8 @@ def train(spec: Spec, rc: RunCfg, log=print) -> dict:
     tr, va = corpus()
     it = batches(tr, rc.bsz, d.seq_len, seed=1000 + rc.seed)  # same batches for every arm
     curve, gmax, nonfinite = [], 0.0, 0
+    gns: list[float] = []
+    warm_steps = max(1, int(rc.warmup_frac * rc.steps))
     t0 = time.time()
     ema = None
     for step in range(rc.steps):
@@ -435,6 +446,7 @@ def train(spec: Spec, rc: RunCfg, log=print) -> dict:
             opt.zero_grad(set_to_none=True)
         else:
             gmax = max(gmax, gn)
+            gns.append(gn)
             opt.step()
         sched.step()
         task = task.detach()
@@ -448,6 +460,7 @@ def train(spec: Spec, rc: RunCfg, log=print) -> dict:
         "spec": spec.name, "seed": rc.seed, "params": model.n_params(),
         "val_bpb": curve[-1][2], "curve": curve, "max_grad_norm": round(gmax, 3),
         "nonfinite_steps": nonfinite, "leak": causality_leak(model, d.seq_len),
+        "gn_after_warmup": _gn_stats(gns[warm_steps:]),
         "causal_val_bpb": round(causal_evaluate(model, va, d.seq_len), 4),
         "tok_per_s": round(rc.steps * rc.bsz * d.seq_len / wall), "wall_s": round(wall, 1),
     }
