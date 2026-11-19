@@ -59,7 +59,8 @@ def loss_acc(model, ids, mask):
     return F.cross_entropy(lg, tg), (lg.argmax(-1) == tg).float().mean()
 
 
-def run(spec: str, steps: int, pairs: int, seed: int, lr: float, dims: Dims, bsz: int, task: str = "mqar") -> dict:
+def run(spec: str, steps: int, pairs: int, seed: int, lr: float, dims: Dims, bsz: int, task: str = "mqar",
+        test_spans: tuple[int, ...] = ()) -> dict:
     batch = make_batch if task == "mqar" else make_copy_batch
     torch.manual_seed(seed)
     model = LabLM(Spec.parse(spec), dims)
@@ -93,7 +94,15 @@ def run(spec: str, steps: int, pairs: int, seed: int, lr: float, dims: Dims, bsz
             with AMP():
                 _, acc = loss_acc(model, ids, mask)
             accs.append(float(acc))
-    return {"spec": spec, "task": task, "seed": seed, "pairs": pairs, "steps": steps, "test_acc": sum(accs) / len(accs),
+        by_span = {}
+        for sp in test_spans:
+            a = []
+            for _ in range(4):
+                ids, mask = batch(16, sp, ge)
+                with AMP():
+                    a.append(float(loss_acc(model, ids, mask)[1]))
+            by_span[sp] = round(sum(a) / len(a), 4)
+    return {"acc_by_span": by_span, "spec": spec, "task": task, "seed": seed, "pairs": pairs, "steps": steps, "test_acc": sum(accs) / len(accs),
             "curve": curve, "wall_s": round(time.time() - t0, 1)}
 
 
@@ -109,17 +118,19 @@ def main():
     ap.add_argument("--d-model", type=int, default=128)
     ap.add_argument("--task", choices=["mqar", "copy"], default="mqar",
                     help="copy: random span then its repeat; --pairs is the span length")
+    ap.add_argument("--test-spans", default="", help="copy task: also test at these longer spans")
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
+    spans = tuple(int(x) for x in args.test_spans.split(",") if x)
     torch.set_num_threads(1)
     dims = Dims(d_model=args.d_model, d_inner=3 * args.d_model, n_layers=args.layers,
-                n_heads=args.d_model // 64, d_k=64, seq_len=4 * args.pairs)
+                n_heads=args.d_model // 64, d_k=64, seq_len=4 * max((args.pairs, *spans)))
     out = Path(args.out)
     res = json.loads(out.read_text()) if out.exists() else []
     for seed in map(int, args.seeds.split(",")):
         for spec in args.specs.split(","):
-            r = run(spec, args.steps, args.pairs, seed, args.lr, dims, args.bsz, args.task)
-            print(f"RECALL {spec} seed={seed} acc={r['test_acc']:.4f}", flush=True)
+            r = run(spec, args.steps, args.pairs, seed, args.lr, dims, args.bsz, args.task, spans)
+            print(f"RECALL {spec} seed={seed} acc={r['test_acc']:.4f} by_span={r['acc_by_span']}", flush=True)
             res.append(r)
             out.write_text(json.dumps(res, indent=1))
 
