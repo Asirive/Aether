@@ -187,6 +187,11 @@ Lab models (7M, 800 steps, seed 0) trained on 256-byte windows only, then scored
   interpolation) or long-context fine-tuning, so this is a robustness advantage, not proof
   that v2 uses long context better. The slight rise at 1024-2048 suggests v2's attention
   layers also degrade somewhat; long-context fine-tuning is still advisable.
+* Exact retrieval does **not** extrapolate, for either design (results/18_copy_len): trained
+  on the 128-token copy task (both 100%), then tested on 256 and 512-token spans, the
+  transformer scores 0.5% / 0.4% and v2 0.5% / 0.4% (chance is 0.4%). v2's robustness is in
+  average prediction quality, not in exact recall at unseen lengths. The deployed model
+  must be trained (or fine-tuned) at the context length it will use.
 
 ## 10. What the CPU lab cannot answer
 * **Scale.** 15M parameters and 3200 steps at most. Effects can shrink or flip at 0.5-1B.
