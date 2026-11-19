@@ -523,7 +523,7 @@ def _gn_stats(g: list[float]) -> dict:
             "argmax_step": int(g.index(max(g)))}
 
 
-def train(spec: Spec, rc: RunCfg, log=print) -> dict:
+def train(spec: Spec, rc: RunCfg, log=print, sink: list | None = None) -> dict:
     torch.manual_seed(rc.seed)
     random.seed(rc.seed)
     d = rc.dims
@@ -561,6 +561,8 @@ def train(spec: Spec, rc: RunCfg, log=print) -> dict:
             curve.append((step + 1, round(ema / math.log(2), 4), round(v, 4), round(gn, 3)))
             log(f"  [{spec.name} s{rc.seed}] step {step+1} train_bpb={ema/math.log(2):.4f} val_bpb={v:.4f} gn={gn:.2f}")
     wall = time.time() - t0
+    if sink is not None:
+        sink.append(model)
     return {
         "spec": spec.name, "seed": rc.seed, "params": model.n_params(),
         "val_bpb": curve[-1][2], "curve": curve, "max_grad_norm": round(gmax, 3),
