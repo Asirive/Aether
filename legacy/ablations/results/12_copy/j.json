@@ -1,0 +1,132 @@
+[
+ {
+  "spec": "attn/attn/none",
+  "seed": 0,
+  "params": 6885888,
+  "val_bpb": 2.0559,
+  "curve": [
+   [
+    200,
+    2.9711,
+    2.9998,
+    0.663
+   ],
+   [
+    400,
+    2.2655,
+    2.4482,
+    0.601
+   ],
+   [
+    600,
+    2.0146,
+    2.1572,
+    0.516
+   ],
+   [
+    800,
+    1.8302,
+    2.0559,
+    0.472
+   ]
+  ],
+  "max_grad_norm": 11.887,
+  "nonfinite_steps": 0,
+  "leak": 0.0,
+  "gn_after_warmup": {
+   "median": 0.58,
+   "p99": 2.333,
+   "max": 4.262,
+   "n_over_5": 0,
+   "n_over_20": 0,
+   "argmax_step": 34
+  },
+  "copy0_bits": 2.0198,
+  "copy1_bits": 2.1579,
+  "copy2_bits": 2.1575,
+  "copy_gain": -0.1377,
+  "causal_val_bpb": 2.1609,
+  "paired_full_bpb": 2.1608,
+  "tok_per_s": 3251,
+  "wall_s": 1007.9,
+  "dims": {
+   "d_model": 256,
+   "d_inner": 768,
+   "n_layers": 8,
+   "n_heads": 4,
+   "d_k": 64,
+   "seq_len": 256
+  },
+  "run": {
+   "steps": 800,
+   "bsz": 16,
+   "lr": 0.002,
+   "amp_bf16": true
+  }
+ },
+ {
+  "spec": "P:conv-conv-swa-attn-conv-conv-swa-attn/none",
+  "seed": 0,
+  "params": 6885500,
+  "val_bpb": 1.8173,
+  "curve": [
+   [
+    200,
+    2.3353,
+    2.4143,
+    0.549
+   ],
+   [
+    400,
+    1.8472,
+    2.0735,
+    0.471
+   ],
+   [
+    600,
+    1.7029,
+    1.8952,
+    0.419
+   ],
+   [
+    800,
+    1.5892,
+    1.8173,
+    0.436
+   ]
+  ],
+  "max_grad_norm": 5.486,
+  "nonfinite_steps": 0,
+  "leak": 0.0,
+  "gn_after_warmup": {
+   "median": 0.478,
+   "p99": 0.871,
+   "max": 1.413,
+   "n_over_5": 0,
+   "n_over_20": 0,
+   "argmax_step": 7
+  },
+  "copy0_bits": 1.7176,
+  "copy1_bits": 1.8759,
+  "copy2_bits": 1.8779,
+  "copy_gain": -0.1603,
+  "causal_val_bpb": 1.8795,
+  "paired_full_bpb": 1.8797,
+  "tok_per_s": 3659,
+  "wall_s": 895.6,
+  "dims": {
+   "d_model": 256,
+   "d_inner": 768,
+   "n_layers": 8,
+   "n_heads": 4,
+   "d_k": 64,
+   "seq_len": 256
+  },
+  "run": {
+   "steps": 800,
+   "bsz": 16,
+   "lr": 0.002,
+   "amp_bf16": true
+  }
+ }
+]

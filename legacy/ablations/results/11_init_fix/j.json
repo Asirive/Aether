@@ -61,5 +61,68 @@
    "lr": 0.002,
    "amp_bf16": true
   }
+ },
+ {
+  "spec": "P:pm2-pm2-swa-attn-pm2-pm2-swa-attn/none",
+  "seed": 0,
+  "params": 6871916,
+  "val_bpb": 1.6834,
+  "curve": [
+   [
+    200,
+    2.0029,
+    2.1492,
+    0.609
+   ],
+   [
+    400,
+    1.6561,
+    1.9031,
+    0.531
+   ],
+   [
+    600,
+    1.5337,
+    1.752,
+    0.463
+   ],
+   [
+    800,
+    1.4379,
+    1.6834,
+    0.488
+   ]
+  ],
+  "max_grad_norm": 14.142,
+  "nonfinite_steps": 0,
+  "leak": 0.0,
+  "gn_after_warmup": {
+   "median": 0.513,
+   "p99": 1.304,
+   "max": 2.157,
+   "n_over_5": 0,
+   "n_over_20": 0,
+   "argmax_step": 177
+  },
+  "copy1_bits": 11.3169,
+  "copy2_bits": 11.294,
+  "causal_val_bpb": 1.7338,
+  "paired_full_bpb": 1.7336,
+  "tok_per_s": 2472,
+  "wall_s": 1325.4,
+  "dims": {
+   "d_model": 256,
+   "d_inner": 768,
+   "n_layers": 8,
+   "n_heads": 4,
+   "d_k": 64,
+   "seq_len": 256
+  },
+  "run": {
+   "steps": 800,
+   "bsz": 16,
+   "lr": 0.002,
+   "amp_bf16": true
+  }
  }
 ]
