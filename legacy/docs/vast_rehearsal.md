@@ -64,6 +64,11 @@ Then **destroy** the instance (a stopped instance still bills for disk).
 
 ## Reading the result
 
+Judge the whole curve, not only the last eval. In the 15M CPU runs the transformer's loss
+dropped suddenly once it learned in-context copying (visible as a jump in copy_gain), and
+on one seed that closed most of the gap to v2. At 0.54B that transition should happen
+early; what matters is who is ahead after both students have it.
+
 * `student_bpb` on the held-out set: lower is better; the gap to `teacher_bpb` is what
   distillation has not yet transferred.
 * `copy_gain` = loss on a span minus loss on its second repeat. A model that retrieves from

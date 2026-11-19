@@ -35,12 +35,13 @@ def main() -> None:
               f"{t.get('mem_gb', float('nan')):6.1f} {e.get('student_bpb', float('nan')):11.4f} "
               f"{e.get('teacher_bpb', float('nan')):11.4f} {e.get('copy_gain', float('nan')):9.3f} {hours:12.1f}")
     if all(len(load(r)[2]) > 1 for r in args.runs):
-        print("\nEval curves (student bpb by step):")
-        curves = {r.name: {e["step"]: e["student_bpb"] for e in load(r)[2]} for r in args.runs}
-        steps = sorted(set().union(*[c.keys() for c in curves.values()]))
-        print("step    " + "  ".join(f"{n[:16]:>16s}" for n in curves))
-        for s in steps:
-            print(f"{s:<7d} " + "  ".join(f"{curves[n].get(s, float('nan')):16.4f}" for n in curves))
+        for key, title in (("student_bpb", "student bpb"), ("copy_gain", "copy gain, bits (induction forming)")):
+            print(f"\nEval curves ({title} by step):")
+            curves = {r.name: {e["step"]: e.get(key, float("nan")) for e in load(r)[2]} for r in args.runs}
+            steps = sorted(set().union(*[c.keys() for c in curves.values()]))
+            print("step    " + "  ".join(f"{n[:16]:>16s}" for n in curves))
+            for s in steps:
+                print(f"{s:<7d} " + "  ".join(f"{curves[n].get(s, float('nan')):16.4f}" for n in curves))
 
 
 if __name__ == "__main__":
