@@ -178,6 +178,26 @@ bpb on all positions of 96 held-out windows (~24k predictions per number):
   epochs, so with real pretraining-scale data this matters less, but the rehearsal must
   compare held-out loss, not train loss.
 
+**No data repetition (results/20_bigdata): `--data big`, ~109 MB deduplicated Python
+(stdlib + installed packages), 6400 steps = ~0.24 epochs, d384, seed 0.**
+
+| design | attn layers | 1600 | 3200 | 4800 | 6400 | strict causal | copy gain |
+|---|---|---|---|---|---|---|---|
+| transformer | 8 | 1.763 | 1.404 | 1.264 | 1.209 | 1.123 | +0.80 |
+| v2 (conv-pm2-conv-attn x2) | 2 | **1.539** | **1.283** | **1.161** | **1.099** | 1.075 | +0.69 |
+| v2, last two attn | 3 | 1.524 | 1.286 | 1.163 | 1.109 | **1.062** | +0.66 |
+| v2, alternating attn | 4 | 1.552 | 1.292 | 1.162 | 1.106 | 1.072 | +0.65 |
+
+* v2 beats the transformer by 0.110 bpb (-9.1%) at 6400 steps, and the gap is flat over the
+  second half (-0.12, -0.10, -0.11). This time the transformer has formed induction heads
+  (copy gain +0.80, its strongest of any run) and still loses on both metrics.
+* Train and val stay within 0.03 for every design: the overfitting seen on the 9 MB corpus is
+  gone. So the seed-1 reversal above is best explained by data repetition, which v2 fits
+  faster; real pretraining does not repeat data.
+* More attention does not help: 3 or 4 attention layers are within 0.01 of v2's 2. Keep
+  2 of 8, which also keeps the KV cache at 1/4 of the transformer's.
+* Single seed; seed 1 on the big corpus is running.
+
 ## 7. Deployment check at the real size (0.54B, static-shape ONNX)
 
 `scripts/export_onnx.py` exports one decode step with every shape fixed, as the Snapdragon
