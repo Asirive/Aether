@@ -52,7 +52,16 @@ python3 scripts/distill.py --student aether_v2 --tokens $TOK --out runs/kd_aethe
 python3 scripts/distill.py --student vanilla   --tokens $TOK --out runs/kd_vanilla 2>&1 | tee -a runs/kd_vanilla.out
 ```
 
-Both runs see the same documents in the same order and the same held-out set. If the
+Optional third arm, if budget allows: the all-SSM variant tied v2 in the CPU lab (1.094 vs
+1.101 bpb mean over 2 seeds, within noise) and is the only alternative worth testing at
+0.54B:
+
+```bash
+python3 scripts/distill.py --student aether_v2 --pattern ssm3_attn --tokens $TOK --out runs/kd_ssm3 2>&1 | tee -a runs/kd_ssm3.out
+python3 scripts/compare_kd.py runs/kd_aether runs/kd_ssm3 runs/kd_vanilla
+```
+
+All runs see the same documents in the same order and the same held-out set. If the
 instance is interrupted, rerun the same command: it resumes from `runs/<name>/ckpt.pt`.
 
 Monitor: `python3 scripts/compare_kd.py runs/kd_aether runs/kd_vanilla`

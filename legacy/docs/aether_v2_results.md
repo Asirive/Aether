@@ -233,6 +233,22 @@ What each component contributes, and how they interact:
   gain); `scripts/export_onnx.py --pattern ssm3_attn` already exports it. Choose it only if
   the Vast rehearsal shows a gap at 0.54B.
 
+**Second seed for the two closest alternatives (results/21_components_big).**
+
+| design (x2) | seed 0 | seed 1 | mean | vs v2 mean | strict (s0/s1) | copy gain (s0/s1) | train tok/s |
+|---|---|---|---|---|---|---|---|
+| ssm-ssm-ssm-attn | 1.096 | 1.093 | **1.094** | -0.006 | 1.054 / 1.038 | +0.74 / +0.73 | ~1490 |
+| conv-ssm-ssm-attn | 1.102 | 1.096 | 1.099 | -0.002 | 1.058 / 1.014 | +0.71 / +0.73 | ~1715 |
+| v2: conv-ssm-conv-attn | 1.099 | 1.103 | 1.101 | 0 | 1.075 / 1.003 | +0.69 / +0.80 | ~2110 |
+| transformer | 1.209 | 1.233 | 1.221 | +0.120 | 1.123 / 1.095 | +0.80 / +0.84 | ~2120 |
+
+* All three hybrids are within 0.01 of each other, against a 0.12 gap to the transformer.
+  ssm3_attn is ahead on both seeds but by less than seed-to-seed noise (0.002 and 0.010),
+  the strict metric splits 1-1 with v2, and it trains ~30% slower here.
+* Decision rule set before these runs: switch the default only for >0.01 on both seeds. Not
+  met, so v2 stays the default. ssm3_attn is the optional third arm of the Vast rehearsal
+  (`docs/vast_rehearsal.md`), where 0.54B decides it.
+
 ## 7. Deployment check at the real size (0.54B, static-shape ONNX)
 
 `scripts/export_onnx.py` exports one decode step with every shape fixed, as the Snapdragon
