@@ -260,6 +260,12 @@ Runtime on 1 x86 core with other jobs running, so only the ratio matters.
 |---|---|---|---|---|
 | vanilla transformer (28 attn) | 1e-5 | 0 | 470 MB | 729 |
 | **v2 (14 conv, 7 SSM, 7 attn)** | 5e-6 | 0 | **120 MB** | **254** |
+| ssm3_attn backup (21 SSM, 7 attn) | 7e-6 | 0 | 125 MB | 226 |
+
+* ssm3_attn (the optional Vast arm) costs the same on device: same 7 attention layers, so
+  the same KV cache; SSM state adds 5 MB over v2's conv state; latency within run-to-run
+  noise of v2 (measured later, idle machine). Switching to it is free for deployment if the
+  0.54B run favours it.
 
 * Both export cleanly with only standard ops (MatMul, Mul/Add, Softmax, Where, Sigmoid,
   Exp, Softplus, ReduceMean/Sum); no Einsum, loops or dynamic shapes.
