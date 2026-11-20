@@ -196,7 +196,15 @@ bpb on all positions of 96 held-out windows (~24k predictions per number):
   faster; real pretraining does not repeat data.
 * More attention does not help: 3 or 4 attention layers are within 0.01 of v2's 2. Keep
   2 of 8, which also keeps the KV cache at 1/4 of the transformer's.
-* Single seed; seed 1 on the big corpus is running.
+* **Seed 1 (the seed that reversed on the small corpus) confirms it:**
+
+  | seed 1 | 1600 | 3200 | 4800 | 6400 | strict causal | copy gain |
+  |---|---|---|---|---|---|---|
+  | transformer | 1.743 | 1.425 | 1.297 | 1.233 | 1.095 | +0.84 |
+  | v2 | **1.520** | **1.263** | **1.160** | **1.103** | **1.003** | +0.80 |
+
+  -0.130 bpb (-10.5%), with near-equal copy gain. Over both seeds on non-repeating data, v2
+  wins 2 of 2 at 6400 steps by 0.11-0.13 bpb, at 1/4 of the transformer's KV cache.
 
 ## 7. Deployment check at the real size (0.54B, static-shape ONNX)
 
