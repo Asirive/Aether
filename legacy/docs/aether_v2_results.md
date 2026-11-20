@@ -143,7 +143,24 @@ bpb on all positions of 96 held-out windows (~24k predictions per number):
   closing. v2 still copies better (copy gain +0.38) and also leads on the strict metric
   (1.379 vs 1.452).
 * Single seed. Together with the three 3200-step seeds, v2 led in every run (4 of 4).
-* 6400-step seed 1: still running (see below once final).
+* **Seed 1 reverses it.** 6400 steps, seed 1:
+
+  | step | 1600 | 3200 | 4000 | 4800 | 5600 | 6400 |
+  |---|---|---|---|---|---|---|
+  | transformer | 1.597 | 1.380 | 1.302 | 1.261 | 1.245 | **1.233** |
+  | v2 | 1.597 | 1.367 | 1.309 | 1.296 | 1.266 | 1.273 |
+
+  The transformer formed induction heads early on this seed, passed v2 at step 4000 and
+  finished 0.04 bpb ahead, with a much stronger copy gain (+0.64 vs +0.22) and a better strict
+  metric (1.403 vs 1.435). v2's val_bpb rose over the last 400 steps (1.263 -> 1.273) while its
+  train_bpb kept falling (0.81 vs transformer 0.95): it is overfitting the ~9 MB stdlib corpus,
+  which 6400 steps covers ~3 times.
+* Long-run score: 1 win, 1 loss. The 3200-step wins (3 of 3) are real but are an early-training
+  advantage; they do not show v2 is better at convergence.
+* Two explanations, tested in results/20_bigdata: (1) data repetition, via `--data big`
+  (~109 MB deduplicated, ~0.24 epochs at 6400 steps); (2) too little attention (2 of 8 layers)
+  for retrieval once the transformer's induction heads form, via two variants with 3 and 4
+  attention layers.
 
 **Larger model (results/19_d512): d_model 512, d_inner 1536, ~27M params, 3200 steps, seed 0.**
 
