@@ -206,6 +206,33 @@ bpb on all positions of 96 held-out windows (~24k predictions per number):
   -0.130 bpb (-10.5%), with near-equal copy gain. Over both seeds on non-repeating data, v2
   wins 2 of 2 at 6400 steps by 0.11-0.13 bpb, at 1/4 of the transformer's KV cache.
 
+**Component ablations in the trustworthy setting (results/21_components_big): big corpus,
+6400 steps, d384, seed 0, ~15.4M params each. Each row swaps one component of v2.**
+
+| design (x2) | change vs v2 | val_bpb | vs v2 | strict causal | copy gain | train tok/s |
+|---|---|---|---|---|---|---|
+| ssm-ssm-ssm-attn | conv -> SSM | **1.096** | -0.002 | **1.054** | +0.74 | 1472 |
+| **v2: conv-ssm-conv-attn** | - | 1.099 | 0 | 1.075 | +0.69 | 2111 |
+| attn-ssm-attn-attn | conv -> attn | 1.114 | +0.015 | 1.107 | +0.63 | 1833 |
+| conv-conv-conv-attn | SSM -> conv | 1.151 | +0.052 | 1.093 | +0.62 | 2401 |
+| transformer | all attn | 1.209 | +0.110 | 1.123 | +0.80 | 2225 |
+| conv-ssm-conv-ssm | attn -> SSM | 1.220 | +0.121 | 1.192 | +0.14 | 1749 |
+
+What each component contributes, and how they interact:
+* **Attention is essential, but 2 of 8 layers is enough.** Removing it is the worst change
+  (+0.121, copy gain collapses to +0.14): recurrent layers alone cannot retrieve. Adding more
+  (3, 4 or 6 of 8, above) never helps.
+* **The SSM is the main source of the gain over a transformer.** Replacing it with conv costs
+  +0.052; conv + attention alone already beats the transformer by 0.06, and adding the SSM
+  takes it to 0.11.
+* **Conv and SSM are complementary with attention, and conv is the cheap filler.** In the
+  conv slots, SSM ties (-0.002, within seed noise of ~0.01) and attention is worse (+0.015).
+  Conv gives the same quality as the SSM there at 1.4x the training throughput, a smaller
+  state and the simplest NPU kernel, so v2 keeps conv.
+* ssm3_attn is the quality-equivalent alternative (slightly better strict metric and copy
+  gain); `scripts/export_onnx.py --pattern ssm3_attn` already exports it. Choose it only if
+  the Vast rehearsal shows a gap at 0.54B.
+
 ## 7. Deployment check at the real size (0.54B, static-shape ONNX)
 
 `scripts/export_onnx.py` exports one decode step with every shape fixed, as the Snapdragon
