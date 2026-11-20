@@ -143,9 +143,23 @@ bpb on all positions of 96 held-out windows (~24k predictions per number):
   closing. v2 still copies better (copy gain +0.38) and also leads on the strict metric
   (1.379 vs 1.452).
 * Single seed. Together with the three 3200-step seeds, v2 led in every run (4 of 4).
-* Partial runs cut by a container restart (not final; rerunning): 6400-step seed 1 at step
-  2600, transformer 1.460 vs v2 1.428; a larger model (d_model 512, ~27M params, 3200-step
-  schedule) at step 1600, transformer 1.867 vs v2 1.504.
+* 6400-step seed 1: still running (see below once final).
+
+**Larger model (results/19_d512): d_model 512, d_inner 1536, ~27M params, 3200 steps, seed 0.**
+
+| design | val_bpb | strict causal | copy gain | max grad norm |
+|---|---|---|---|---|
+| transformer | 1.621 | 1.673 | -0.19 | 33.5 |
+| v2 | **1.327** | **1.515** | +0.09 | 21.7 |
+
+* -0.29 bpb (-18%). At this budget the larger transformer has not formed induction heads yet
+  (negative copy gain), so this is mostly the same early-training advantage as at 15M, not
+  proof that the gap holds at convergence. Single seed.
+* Caveat seen in every long run: v2's train/val gap is larger (here train 0.98 vs val 1.33;
+  transformer 1.35 vs 1.62). Validation is held-out files, so v2 fits the training files
+  faster and some of that does not transfer. The corpus is ~21.6 MB and 6400 steps is ~1.2
+  epochs, so with real pretraining-scale data this matters less, but the rehearsal must
+  compare held-out loss, not train loss.
 
 ## 7. Deployment check at the real size (0.54B, static-shape ONNX)
 
