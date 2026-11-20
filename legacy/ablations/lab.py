@@ -371,15 +371,28 @@ class LabLM(nn.Module):
 _CORPUS: dict = {}
 
 
-def corpus(max_bytes: int = 24_000_000, seed: int = 0) -> tuple[torch.Tensor, torch.Tensor]:
-    key = (max_bytes, seed)
+CORPUS_SOURCE = "stdlib"
+
+
+def _py_files(source: str) -> list[Path]:
+    stdlib = Path(sysconfig.get_paths()["stdlib"])
+    files = [p for p in stdlib.rglob("*.py") if "site-packages" not in p.parts and "dist-packages" not in p.parts]
+    if source == "big":
+        import site
+        roots = {Path(d) for d in site.getsitepackages() + ["/usr/lib/python3/dist-packages"] if Path(d).exists()}
+        files += [p for r in roots for p in r.rglob("*.py")]
+    return sorted(set(files))
+
+
+def corpus(max_bytes: int | None = None, seed: int = 0, source: str | None = None) -> tuple[torch.Tensor, torch.Tensor]:
+    source = source or CORPUS_SOURCE
+    max_bytes = max_bytes or (24_000_000 if source == "stdlib" else 120_000_000)
+    key = (max_bytes, seed, source)
     if key in _CORPUS:
         return _CORPUS[key]
-    stdlib = Path(sysconfig.get_paths()["stdlib"])
-    files = sorted(p for p in stdlib.rglob("*.py")
-                   if "site-packages" not in p.parts and "dist-packages" not in p.parts)
+    files = _py_files(source)
     random.Random(seed).shuffle(files)
-    train, val = bytearray(), bytearray()
+    train, val, seen = bytearray(), bytearray(), set()
     for i, f in enumerate(files):
         if len(train) + len(val) >= max_bytes:
             break
@@ -387,9 +400,14 @@ def corpus(max_bytes: int = 24_000_000, seed: int = 0) -> tuple[torch.Tensor, to
             b = f.read_bytes()
         except OSError:
             continue
+        if source == "big":
+            h = hash(b)
+            if h in seen or len(b) > 1_000_000 or b"\x00" in b:
+                continue
+            seen.add(h)
         (val if i % 10 == 0 else train).extend(b + b"\x00")
     def to_t(b: bytearray) -> torch.Tensor:
-        t = torch.tensor(list(b), dtype=torch.long)
+        t = torch.frombuffer(b, dtype=torch.uint8).long()
         return t.masked_fill_(t == 0, EOS)
     _CORPUS[key] = (to_t(train), to_t(val))
     return _CORPUS[key]
@@ -608,8 +626,11 @@ def main() -> None:
     ap.add_argument("--threads", type=int, default=4)
     ap.add_argument("--out", required=True)
     ap.add_argument("--fp32", action="store_true", help="disable bf16 autocast")
+    ap.add_argument("--data", choices=["stdlib", "big"], default="stdlib",
+                    help="big = stdlib + installed packages, deduplicated (~100 MB, no repetition at 6400 steps)")
     args = ap.parse_args()
-    global USE_AMP
+    global USE_AMP, CORPUS_SOURCE
+    CORPUS_SOURCE = args.data
     USE_AMP = not args.fp32
     torch.set_num_threads(args.threads)
     dims = Dims(d_model=args.d_model, d_inner=args.d_inner, n_layers=args.layers,
@@ -628,7 +649,7 @@ def main() -> None:
             r = train(spec, rc, log=lambda m: print(m, flush=True), ckpt=ck)
             ck.unlink(missing_ok=True)
             r["dims"] = asdict(dims)
-            r["run"] = {"steps": args.steps, "bsz": args.bsz, "lr": args.lr, "amp_bf16": USE_AMP}
+            r["run"] = {"data": args.data, "steps": args.steps, "bsz": args.bsz, "lr": args.lr, "amp_bf16": USE_AMP}
             print(f"RESULT {r['spec']} seed={seed} val_bpb={r['val_bpb']} params={r['params']:,} "
                   f"causal_bpb={r['causal_val_bpb']} leak={r['leak']:.2e} tok/s={r['tok_per_s']} gmax={r['max_grad_norm']} copy_gain={r['copy_gain']}", flush=True)
             append_result(out, r)
