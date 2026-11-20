@@ -523,7 +523,7 @@ def _gn_stats(g: list[float]) -> dict:
             "argmax_step": int(g.index(max(g)))}
 
 
-def train(spec: Spec, rc: RunCfg, log=print, sink: list | None = None) -> dict:
+def train(spec: Spec, rc: RunCfg, log=print, sink: list | None = None, ckpt: Path | None = None) -> dict:
     torch.manual_seed(rc.seed)
     random.seed(rc.seed)
     d = rc.dims
@@ -538,7 +538,19 @@ def train(spec: Spec, rc: RunCfg, log=print, sink: list | None = None) -> dict:
     warm_steps = max(1, int(rc.warmup_frac * rc.steps))
     t0 = time.time()
     ema = None
-    for step in range(rc.steps):
+    start, wall_before = 0, 0.0
+    if ckpt is not None and ckpt.exists():
+        st = torch.load(ckpt, weights_only=False)
+        model.load_state_dict(st["model"])
+        opt.load_state_dict(st["opt"])
+        sched.load_state_dict(st["sched"])
+        start, curve, gmax, nonfinite, gns, ema, wall_before = (
+            st["step"], st["curve"], st["gmax"], st["nonfinite"], st["gns"], st["ema"], st["wall"])
+        torch.set_rng_state(st["rng"])
+        for _ in range(start):
+            next(it)
+        log(f"  [{spec.name} s{rc.seed}] resumed at step {start}")
+    for step in range(start, rc.steps):
         aux_w = model.set_knobs(step, rc.steps)
         ids = next(it)
         with AMP():
@@ -560,7 +572,14 @@ def train(spec: Spec, rc: RunCfg, log=print, sink: list | None = None) -> dict:
             v = evaluate(model, va, d.seq_len)
             curve.append((step + 1, round(ema / math.log(2), 4), round(v, 4), round(gn, 3)))
             log(f"  [{spec.name} s{rc.seed}] step {step+1} train_bpb={ema/math.log(2):.4f} val_bpb={v:.4f} gn={gn:.2f}")
-    wall = time.time() - t0
+            if ckpt is not None and step + 1 < rc.steps:
+                ckpt.parent.mkdir(parents=True, exist_ok=True)
+                torch.save({"model": model.state_dict(), "opt": opt.state_dict(), "sched": sched.state_dict(),
+                            "step": step + 1, "curve": curve, "gmax": gmax, "nonfinite": nonfinite, "gns": gns,
+                            "ema": ema, "wall": wall_before + time.time() - t0, "rng": torch.get_rng_state()},
+                           ckpt.with_suffix(".tmp"))
+                ckpt.with_suffix(".tmp").replace(ckpt)
+    wall = wall_before + time.time() - t0
     if sink is not None:
         sink.append(model)
     return {
@@ -571,7 +590,7 @@ def train(spec: Spec, rc: RunCfg, log=print, sink: list | None = None) -> dict:
         **copy_probe(model, va),
         **dict(zip(("causal_val_bpb", "paired_full_bpb"),
                    (round(v, 4) for v in causal_evaluate(model, va, d.seq_len)))),
-        "tok_per_s": round(rc.steps * rc.bsz * d.seq_len / wall), "wall_s": round(wall, 1),
+        "tok_per_s": round((rc.steps - start) * rc.bsz * d.seq_len / max(time.time() - t0, 1e-9)), "wall_s": round(wall, 1),
     }
 
 
@@ -605,7 +624,9 @@ def main() -> None:
             if (spec.name, seed) in done:
                 continue
             rc = RunCfg(steps=args.steps, bsz=args.bsz, lr=args.lr, seed=seed, dims=dims)
-            r = train(spec, rc, log=lambda m: print(m, flush=True))
+            ck = out.parent / "ckpt" / f"{out.stem}_{spec.name.replace('/', '_').replace(':', '_')}_s{seed}.pt"
+            r = train(spec, rc, log=lambda m: print(m, flush=True), ckpt=ck)
+            ck.unlink(missing_ok=True)
             r["dims"] = asdict(dims)
             r["run"] = {"steps": args.steps, "bsz": args.bsz, "lr": args.lr, "amp_bf16": USE_AMP}
             print(f"RESULT {r['spec']} seed={seed} val_bpb={r['val_bpb']} params={r['params']:,} "
