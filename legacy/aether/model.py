@@ -310,9 +310,12 @@ class AetherForCausalLM(nn.Module):
 
     def hidden(self, input_ids: torch.Tensor) -> torch.Tensor:
         """Final normalised hidden states (no logits). For models without a depth router."""
+        return self.hidden_from_embeds(self.token_embedding(input_ids))
+
+    def hidden_from_embeds(self, x: torch.Tensor) -> torch.Tensor:
+        """Final normalised hidden states from input embeddings, e.g. image tokens then text."""
         if self.mod_router is not None:
             raise NotImplementedError("hidden() is for models without a depth router")
-        x = self.token_embedding(input_ids)
         for block in self.blocks:
             x, _, _ = block(x)
         return self.norm(x)
