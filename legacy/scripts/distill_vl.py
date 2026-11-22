@@ -86,7 +86,7 @@ def spatial_example(rng: random.Random, size: int):
     rel = relation(a, b)
     name = lambda o: f"{o[0][0]} {o[0][1]}"
     prompt = f"Where is the {name(a)} relative to the {name(b)}?"
-    return img, prompt, lambda r: f"The {name(a)} is {r} the {name(b)}.", rel
+    return img, prompt + " Answer with left of, right of, above or below.", lambda r: f"{r}.", rel
 
 
 class PatchEncoder(nn.Module):
