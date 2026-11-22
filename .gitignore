@@ -53,3 +53,5 @@ legacy/ablations/results/jobq.log
 legacy/ablations/results/*/*.lock
 legacy/ablations/results/*/ckpt/
 legacy/ablations/results/jobs_current.txt
+legacy/ablations/results/*/*/ckpt.pt
+legacy/ablations/results/*/*/ckpt.tmp
