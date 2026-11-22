@@ -225,10 +225,11 @@ class Pipeline:
 
 
 def kd_text_loss(student: VLStudent, h, n_img: int, ids, th, t_head_w, kd_weight: float, temp: float,
-                 chunk: int, start: int = 0):
-    hs = h[0, n_img - 1 + start:-1]
-    tgt = ids[0, start:]
-    th = th[:, start:] if th is not None else None
+                 chunk: int, start: int = 0, n_tokens: int = 0):
+    end = ids.size(1) if n_tokens <= 0 else min(ids.size(1), start + n_tokens)
+    hs = h[0, n_img - 1 + start:n_img - 1 + end]
+    tgt = ids[0, start:end]
+    th = th[:, start:end] if th is not None else None
     w = student.head()
     ce_tot, kl_tot = hs.new_zeros((), dtype=torch.float32), hs.new_zeros((), dtype=torch.float32)
     for s in range(0, hs.size(0), chunk):
@@ -329,6 +330,8 @@ def main(argv=None) -> dict:
     ap.add_argument("--task", choices=["pair", "single"], default="pair",
                     help="pair: relation between two named objects; single: one square, left or right")
     ap.add_argument("--answer-only", action="store_true", help="score only the answer tokens")
+    ap.add_argument("--answer-tokens", type=int, default=0,
+                    help="with --answer-only, score only the first N answer tokens (0 = all)")
     ap.add_argument("--synthetic-frac", type=float, default=0.1, help="mix in synthetic spatial scenes")
     ap.add_argument("--teacher-image-size", type=int, default=448)
     ap.add_argument("--image-size", type=int, default=64, help="mock encoder input size")
@@ -395,7 +398,7 @@ def main(argv=None) -> dict:
             with amp():
                 h, n_img = student.hidden(pix, ids)
                 ce, kl = kd_text_loss(student, h, n_img, ids, th, t_head_w, args.kd_weight, args.temp,
-                                      args.loss_chunk, start)
+                                      args.loss_chunk, start, args.answer_tokens)
                 loss = ce if th is None else (1 - args.kd_weight) * ce + args.kd_weight * kl
             (loss / args.grad_accum).backward()
             ce_acc += float(ce.detach()) / args.grad_accum
