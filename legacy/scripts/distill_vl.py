@@ -80,8 +80,21 @@ def relation(a, b) -> str:
     return "above" if ay < by else "below"
 
 
+TASK = {"name": "pair"}
+
+
 def spatial_example(rng: random.Random, size: int):
     img, objs = draw_scene(rng, size)
+    if TASK["name"] == "single":
+        from PIL import ImageDraw
+
+        img = img.copy()
+        ImageDraw.Draw(img).rectangle((0, 0, size, size), fill=(20, 20, 20))
+        (color, shape), x, y = objs[0]
+        r = size // 10
+        ImageDraw.Draw(img).rectangle((x - r, y - r, x + r, y + r), fill=COLORS[color])
+        rel = "left of" if x < size / 2 else "right of"
+        return img, "Is the square on the left or the right?", lambda r_: f"{r_}.", rel
     a, b = rng.sample(objs, 2)
     rel = relation(a, b)
     name = lambda o: f"{o[0][0]} {o[0][1]}"
@@ -313,6 +326,8 @@ def main(argv=None) -> dict:
     ap.add_argument("--prompt-col", default="question")
     ap.add_argument("--answer-col", default="answer")
     ap.add_argument("--prompt", default="Describe the scene for a blind person, with where things are.")
+    ap.add_argument("--task", choices=["pair", "single"], default="pair",
+                    help="pair: relation between two named objects; single: one square, left or right")
     ap.add_argument("--answer-only", action="store_true", help="score only the answer tokens")
     ap.add_argument("--synthetic-frac", type=float, default=0.1, help="mix in synthetic spatial scenes")
     ap.add_argument("--teacher-image-size", type=int, default=448)
@@ -339,6 +354,7 @@ def main(argv=None) -> dict:
     ap.add_argument("--mock", action="store_true")
     ap.add_argument("--out", required=True)
     args = ap.parse_args(argv)
+    TASK["name"] = args.task
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     amp = lambda: torch.autocast(device, dtype=torch.bfloat16, enabled=device == "cuda")
