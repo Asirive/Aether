@@ -250,17 +250,21 @@ def spatial_probe(student: VLStudent, pipe: Pipeline, n: int, device, amp) -> di
         img, prompt, caption, rel = spatial_example(rng, max(pipe.args.image_size, 64) if pipe.args.mock
                                                     else pipe.args.teacher_image_size)
         pix = pipe.pixels(img).to(device)
+        cands = RELATIONS[:2] if TASK["name"] == "single" else RELATIONS
         scores = []
-        for r in RELATIONS:
+        for r in cands:
             ids = pipe.student_ids(img, prompt, caption(r)).to(device)
+            start = pipe.answer_start(ids, prompt, caption(r))
+            n_tok = getattr(pipe.args, "answer_tokens", 0)
+            end = ids.size(1) if n_tok <= 0 else min(ids.size(1), start + n_tok)
             with amp():
                 h, n_img = student.hidden(pix, ids)
-            logits = F.linear(h[0, n_img - 1:-1].float(), student.head().float())
-            scores.append(-F.cross_entropy(logits, ids[0], reduction="sum").item())
-        best = max(range(4), key=lambda i: scores[i])
-        correct += RELATIONS[best] == rel
-        others = [s for r, s in zip(RELATIONS, scores) if r != rel]
-        margin += scores[RELATIONS.index(rel)] - max(others)
+            logits = F.linear(h[0, n_img - 1 + start:n_img - 1 + end].float(), student.head().float())
+            scores.append(-F.cross_entropy(logits, ids[0, start:end], reduction="sum").item())
+        best = max(range(len(cands)), key=lambda i: scores[i])
+        correct += cands[best] == rel
+        others = [s for r, s in zip(cands, scores) if r != rel]
+        margin += scores[cands.index(rel)] - max(others)
     student.train()
     return {"spatial_acc": correct / n, "spatial_margin_nats": margin / n}
 
@@ -352,6 +356,7 @@ def main(argv=None) -> dict:
     ap.add_argument("--eval-every", type=int, default=100)
     ap.add_argument("--probe-n", type=int, default=100)
     ap.add_argument("--ckpt-every", type=int, default=100)
+    ap.add_argument("--eval-only", action="store_true", help="load ckpt.pt, run the spatial probe, exit")
     ap.add_argument("--log-every", type=int, default=10)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--mock", action="store_true")
@@ -376,6 +381,10 @@ def main(argv=None) -> dict:
         opt.load_state_dict(st["opt"])
         step, seen = st["step"], st["seen"]
         print(f"resumed at step {step}", flush=True)
+    if args.eval_only:
+        ev = dict(spatial_probe(student, pipe, args.probe_n, device, amp), step=step)
+        print("EVAL", json.dumps(ev), flush=True)
+        return ev
     stream = data_stream(args, seen, args.seed)
     meta = {"args": vars(args), "device": device,
             "params_lm": sum(p.numel() for p in student.lm.parameters()),
