@@ -186,22 +186,36 @@ class Pipeline:
         inp, p = self.teacher_batch(img, prompt, answer)
         return inp["input_ids"][:, p + 1:]
 
+    def answer_start(self, ids: torch.Tensor, prompt: str, answer: str) -> int:
+        if not self.args.answer_only:
+            return 0
+        if self.teacher is None:
+            return len(self.tok([f"{prompt}\n"], add_special_tokens=False)["input_ids"][0])
+        a = self.tok([answer], add_special_tokens=False)["input_ids"][0]
+        seq = ids[0].tolist()
+        for i in range(len(seq) - len(a), -1, -1):
+            if seq[i:i + len(a)] == a:
+                return i
+        return 0
+
     def example(self, img, prompt: str, answer: str, device):
         if self.teacher is None:
-            return self.pixels(img).to(device), self.text_ids(prompt, answer).to(device), None
+            ids = self.text_ids(prompt, answer)
+            return self.pixels(img).to(device), ids.to(device), None, self.answer_start(ids, prompt, answer)
         inp, p = self.teacher_batch(img, prompt, answer)
         inp = {k: v.to(device) for k, v in inp.items()}
         ids = inp["input_ids"][:, p + 1:]
         with torch.no_grad(), torch.autocast(device, dtype=torch.bfloat16, enabled=device == "cuda"):
             out = self.teacher.model(**inp)
         th = out.last_hidden_state[:, p:-1]
-        return self.pixels(img).to(device), ids, th
+        return self.pixels(img).to(device), ids, th, self.answer_start(ids, prompt, answer)
 
 
 def kd_text_loss(student: VLStudent, h, n_img: int, ids, th, t_head_w, kd_weight: float, temp: float,
-                 chunk: int):
-    hs = h[0, n_img - 1:-1]
-    tgt = ids[0]
+                 chunk: int, start: int = 0):
+    hs = h[0, n_img - 1 + start:-1]
+    tgt = ids[0, start:]
+    th = th[:, start:] if th is not None else None
     w = student.head()
     ce_tot, kl_tot = hs.new_zeros((), dtype=torch.float32), hs.new_zeros((), dtype=torch.float32)
     for s in range(0, hs.size(0), chunk):
@@ -299,6 +313,7 @@ def main(argv=None) -> dict:
     ap.add_argument("--prompt-col", default="question")
     ap.add_argument("--answer-col", default="answer")
     ap.add_argument("--prompt", default="Describe the scene for a blind person, with where things are.")
+    ap.add_argument("--answer-only", action="store_true", help="score only the answer tokens")
     ap.add_argument("--synthetic-frac", type=float, default=0.1, help="mix in synthetic spatial scenes")
     ap.add_argument("--teacher-image-size", type=int, default=448)
     ap.add_argument("--image-size", type=int, default=64, help="mock encoder input size")
@@ -360,11 +375,11 @@ def main(argv=None) -> dict:
         for _ in range(args.grad_accum):
             img, prompt, answer = next(stream)
             seen += 1
-            pix, ids, th = pipe.example(img, prompt, answer, device)
+            pix, ids, th, start = pipe.example(img, prompt, answer, device)
             with amp():
                 h, n_img = student.hidden(pix, ids)
                 ce, kl = kd_text_loss(student, h, n_img, ids, th, t_head_w, args.kd_weight, args.temp,
-                                      args.loss_chunk)
+                                      args.loss_chunk, start)
                 loss = ce if th is None else (1 - args.kd_weight) * ce + args.kd_weight * kl
             (loss / args.grad_accum).backward()
             ce_acc += float(ce.detach()) / args.grad_accum
