@@ -59,4 +59,6 @@ Add a held-out eval on real data (VizWiz validation) before a long run.
 
 ## CPU result (results/22_spatial)
 
-See `docs/aether_v2_results.md` section on spatial grounding.
+See `docs/aether_v2_results.md` section 11. The pipeline passes the one-square check (100%);
+the three-shape relation task stays at chance for every design on CPU, so architectures are
+compared on Vast. For synthetic CE-only runs use `--answer-only --answer-tokens 1`.

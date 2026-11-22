@@ -328,3 +328,25 @@ Lab models (7M, 800 steps; seeds 0 and 1, LFM3 seed 0 only) trained on 256-byte 
 exact retrieval as good as a transformer, fastest of the SSM designs, constant-memory decode in 21 of 28 layers, and only standard
 ops (matmul, depthwise conv, elementwise, softmax attention). Run in `scripts/distill.py`
 with `--pattern hybrid_attn`.
+
+## 11. Spatial grounding on CPU (results/22_spatial): no architecture signal yet
+
+Synthetic scenes (64 px, encoder trained from scratch, CE only, no teacher), d256 x 8 layers,
+3000 steps x 8 examples, lr 3e-4, loss on the first answer token (`--answer-tokens 1`).
+
+| task (chance) | student | probe acc | final train CE |
+|---|---|---|---|
+| one square, left/right (0.50) | vanilla | **1.00** (800 steps) | 0.0002 |
+| three shapes, 4 relations (0.25) | aether_v2 hybrid_attn | 0.25 | 1.388 |
+| three shapes, 4 relations (0.25) | vanilla | 0.25 | 1.387 |
+| three shapes, 4 relations (0.25) | aether_v2 ssm3_attn | 0.25 | 1.387 |
+
+* The pipeline works (one square: 100%). Two earlier bugs made every run look like chance:
+  the loss covered the whole answer, so the single deciding token was swamped (runs in
+  `old_full_answer_loss/`), and the probe scored untrained tokens and answers outside the task.
+* The three-shape task stayed at chance for **all three** designs: train CE = ln 4, i.e. each
+  learned only the answer prior. Finding the two named objects and comparing their positions,
+  with a vision encoder learned from scratch on 24k examples, is beyond this CPU budget. That
+  is a limit of the test, not evidence for or against any language core.
+* The comparison has to be made on Vast, where the encoder is pretrained (SigLIP 2) and the
+  teacher's full distribution gives a signal at every token (`docs/vision_stage.md`).
